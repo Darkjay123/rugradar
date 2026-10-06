@@ -31,8 +31,8 @@ ul{padding-left:18px;margin:10px 0 0}li{margin:6px 0}.ok{color:var(--g)}.meta{co
 <p class="meta" id="foot">Free. No wallet connection, nothing to sign. We never store recovery phrases, keys, phone numbers or emails you paste. A clean result is not a guarantee: only use money you can afford to lose.</p>
 </main><script>
 const $=s=>document.querySelector(s),esc=s=>String(s??'').replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
-let lang='en';const L={en:{h:'Is this token a scam?',go:'Check it',busy:'Checking...',labels:{LOW_RISK:'Low risk',CAUTION:'Be careful',HIGH_RISK:'High risk',UNKNOWN:'Not found'},src:'Checked with',wa:'Share on WhatsApp',cp:'Copy result',done:'Copied'},
-pcm:{h:'This token na scam?',go:'Check am',busy:'We dey check...',labels:{LOW_RISK:'Risk small',CAUTION:'Shine your eye',HIGH_RISK:'Danger',UNKNOWN:'We no see am'},src:'We check am with',wa:'Send am for WhatsApp',cp:'Copy am',done:'E don copy'}};
+let lang='en';let BOT=null;fetch('/api/health').then(r=>r.json()).then(h=>{BOT=h.telegram_bot||null}).catch(()=>{});const L={en:{h:'Is this token a scam?',go:'Check it',busy:'Checking...',labels:{LOW_RISK:'Low risk',CAUTION:'Be careful',HIGH_RISK:'High risk',UNKNOWN:'Not found'},src:'Checked with',wa:'Share on WhatsApp',tg:'Alert me on Telegram if it turns',cp:'Copy result',done:'Copied'},
+pcm:{h:'This token na scam?',go:'Check am',busy:'We dey check...',labels:{LOW_RISK:'Risk small',CAUTION:'Shine your eye',HIGH_RISK:'Danger',UNKNOWN:'We no see am'},src:'We check am with',wa:'Send am for WhatsApp',tg:'Make Telegram tell me if e turn',cp:'Copy am',done:'E don copy'}};
 function setLang(l){lang=l;$('#en').className=l==='en'?'on':'';$('#pcm').className=l==='pcm'?'on':'';$('#h').textContent=L[l].h;$('#go').textContent=L[l].go}
 $('#en').onclick=()=>setLang('en');$('#pcm').onclick=()=>setLang('pcm');
 document.querySelectorAll('.ex a').forEach(a=>a.onclick=()=>{$('#q').value=a.dataset.q;$('#chain').value='auto';$('#f').requestSubmit()});
@@ -47,7 +47,7 @@ $('#out').innerHTML=`${flags}<div class="card"><div class="v ${j.verdict}">${L[l
 ${j.money?`<div class="money">${esc(j.money.note)}</div>`:''}<ul>${items}</ul>
 <div class="meta">${L[lang].src}: ${esc(j.sources.join(', ')||'-')}${j.coverage&&j.coverage.missing.length?` · ${lang==='pcm'?'We no fit read':'Couldn\'t read'}: ${esc(j.coverage.missing.join(', '))}`:''}${j.checked_at?` · ${lang==='pcm'?'We check am':'Checked'} ${new Date(j.checked_at).toLocaleTimeString([],{hour:'numeric',minute:'2-digit'})}`:''}</div>
 <div class="share"><a class="wa" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(share)}">${L[lang].wa}</a>
-<button class="cp" type="button" id="cp">${L[lang].cp}</button></div>
+<button class="cp" type="button" id="cp">${L[lang].cp}</button>${BOT&&j.share_url&&j.trace_id&&j.verdict!=='UNKNOWN'?`<a class="wa" target="_blank" rel="noopener" href="https://t.me/${BOT}?start=w${j.trace_id}">${L[lang].tg}</a>`:''}</div>
 <div class="fb" id="fb">${T2[lang].fbq} <button type="button" data-v="up">👍</button><button type="button" data-v="down">👎</button></div></div>`;
 $('#cp').onclick=()=>{navigator.clipboard.writeText(share);$('#cp').textContent=L[lang].done};
 document.querySelectorAll('#fb button').forEach(b=>b.onclick=()=>{fetch('/api/feedback',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({trace_id:j.trace_id,vote:b.dataset.v})});$('#fb').textContent=T2[lang].thx})}

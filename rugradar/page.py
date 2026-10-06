@@ -9,15 +9,15 @@ from html import escape as e
 LABEL = {"en": {"LOW_RISK": "Low risk", "CAUTION": "Be careful", "HIGH_RISK": "HIGH RISK", "UNKNOWN": "Couldn't check"},
          "pcm": {"LOW_RISK": "Risk small", "CAUTION": "Shine your eye", "HIGH_RISK": "DANGER", "UNKNOWN": "We no fit check am"}}
 TXT = {"en": {"checked": "Checked", "stale": "Tokens change fast. Check again before you put money in.", "again": "Check it again now",
-              "own": "Check your own token", "why": "Why", "back": "If you put in", "get": "you'd get back about",
+              "own": "Check your own token", "watch": "Get alerts on Telegram if it turns", "why": "Why", "back": "If you put in", "get": "you'd get back about",
               "src": "Sources read", "low": "Low risk is not a promise. It means we found no big red flags in the sources we could read."},
        "pcm": {"checked": "We check am", "stale": "Token dey change sharp sharp. Check am again before you put money.", "again": "Check am again now",
-               "own": "Check your own token", "why": "Why", "back": "If you put", "get": "you go collect back like",
+               "own": "Check your own token", "watch": "Make Telegram alert you if e turn", "why": "Why", "back": "If you put", "get": "you go collect back like",
                "src": "Where we check", "low": "Risk small no mean say e safe. E mean say we no see big wahala for the places we fit check."}}
 COLOR = {"LOW_RISK": "#15803d", "CAUTION": "#b45309", "HIGH_RISK": "#b91c1c", "UNKNOWN": "#475569"}
 
 
-def render(r: dict, base: str) -> str:
+def render(r: dict, base: str, watch_url: str | None = None) -> str:
     lang = r.get("lang") if r.get("lang") in TXT else "en"
     t, v = TXT[lang], r["verdict"]
     label = LABEL[lang][v]
@@ -44,4 +44,4 @@ ul{{padding-left:20px}}li{{margin:8px 0}}li.critical,li.high{{font-weight:600}}.
 <body><main><div class="badge"><h1>{e(label)} · {r['score']}/100</h1><p>{e(tok)} on {e(r.get('chain_name') or r['chain'])}</p></div>
 <p>{e(r.get('summary', ''))}</p>{money}<h3>{t['why']}</h3><ul>{finds}</ul>{low}
 <p class="meta">{t['checked']}: {e(when)}. {t['stale']}</p><p class="meta">{t['src']}: {src}</p><p class="meta"><code>{e(r['address'])}</code></p>
-<a class="btn a" href="{again}">{t['again']}</a><a class="btn b" href="{base}/">{t['own']}</a></main></body></html>"""
+<a class="btn a" href="{again}">{t['again']}</a>{f'<a class="btn b" href="{e(watch_url)}">{t["watch"]}</a>' if watch_url else ''}<a class="btn b" href="{base}/">{t['own']}</a></main></body></html>"""

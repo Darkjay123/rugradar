@@ -54,3 +54,27 @@ def test_watches_expire():
     watch.add(9, rep())
     r = watch.run(lambda c, a: rep(), lambda *a: None, now=time.time() + watch.EXPIRE_S + 5)
     assert r["watching"] == 0
+
+
+def test_start_deeplink_watches_saved_check(monkeypatch):
+    fresh()
+    from rugradar import telegram, memory
+    monkeypatch.setattr(telegram, "_send", lambda *a, **k: None)
+    monkeypatch.setattr(memory, "get_report", lambda tid: {"chain": "solana", "address": "Mint111"} if tid == "abc123" else None)
+
+    class R:
+        def model_dump(self, mode=None):
+            return rep()
+    monkeypatch.setattr(telegram, "check_text", lambda *a, **k: R())
+    monkeypatch.setattr(telegram, "format_report", lambda r: "report")
+    out = telegram.handle({"message": {"text": "/start wabc123", "chat": {"id": 42, "type": "private"}, "message_id": 1}})
+    assert "Watching" in out and "Test" in watch.listing(42)
+    out = telegram.handle({"message": {"text": "/start wnope", "chat": {"id": 42, "type": "private"}, "message_id": 2}})
+    assert "expired" in out
+
+
+def test_report_page_shows_watch_button_only_when_given():
+    from rugradar.page import render
+    r = {"verdict": "HIGH_RISK", "score": 80, "trace_id": "abc123", "address": "Mint111", "chain": "solana", "findings": []}
+    assert "start=wabc123" in render(r, "https://x", "https://t.me/bot?start=wabc123")
+    assert "t.me" not in render(r, "https://x", None)

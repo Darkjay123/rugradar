@@ -161,7 +161,7 @@ def report_card(trace_id: str):
 def report_page(trace_id: str):
     """What a shared link opens: the saved check, with a preview card for WhatsApp and X."""
     try:
-        return render_page(_saved(trace_id), SHARE_BASE)
+        return render_page(_saved(trace_id), SHARE_BASE, telegram.watch_link(trace_id))
     except HTTPException:
         return HTMLResponse(f'<!doctype html><meta name="viewport" content="width=device-width,initial-scale=1"><body style="font-family:system-ui;padding:24px">'
                             f'<h2>This check has expired or never existed.</h2><p><a href="{SHARE_BASE}/">Check a token now</a></p>', status_code=404)
@@ -223,4 +223,4 @@ def health():
     # which optional features are switched on (never the keys themselves)
     return {"ok": True, "version": app.version, "store": store.backend(),
             "ai_summaries": bool(os.environ.get("GEMINI_API_KEY") or os.environ.get("FALLBACK_API_KEY")),
-            "telegram": bool(os.environ.get("TELEGRAM_BOT_TOKEN"))}
+            "telegram": bool(os.environ.get("TELEGRAM_BOT_TOKEN")), "telegram_bot": telegram.bot_username()}
