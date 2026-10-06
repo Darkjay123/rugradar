@@ -1,5 +1,7 @@
 # RugRadar
 
+**Live:** https://rugradar-dun.vercel.app
+
 **Paste a token, a link, or the "gem" message you were sent. Find out in plain English or Pidgin if it's a trap, before you buy.**
 
 Built for first-time crypto buyers in Nigeria and across Africa, who get pulled into Telegram and X "gems" that turn out to be honeypots, tax rugs or owner-controlled tokens. No wallet connection, nothing to sign.
