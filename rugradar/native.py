@@ -138,8 +138,23 @@ BEACON_SLOT = "0xa3f0ad74e5423aebfd80d3ef4346578335a9a72aeaee59ff6cb3582b35133d5
 
 
 def _selectors(code: str) -> set[str]:
-    code = code[2:] if code.startswith("0x") else code
-    return set(re.findall(r"63([0-9a-f]{8})", code.lower()))
+    """Function selectors the contract checks for: the data of each real PUSH4 opcode. Walks the bytecode
+    instruction by instruction, so a '63' inside another push's data or straddling two bytes never counts."""
+    try:
+        b = bytes.fromhex(code[2:] if code.startswith("0x") else code)
+    except ValueError:
+        return set()
+    out, i = set(), 0
+    while i < len(b):
+        op = b[i]
+        if 0x60 <= op <= 0x7f:                       # PUSH1..PUSH32
+            n = op - 0x5f
+            if op == 0x63 and i + 5 <= len(b):
+                out.add(b[i + 1:i + 5].hex())
+            i += 1 + n
+        else:
+            i += 1
+    return out
 
 
 def _rpc(urls, method, params):
@@ -828,6 +843,7 @@ def hyperliquid(token_id: str) -> dict | None:
         rows = [{"address": u, "amount": b} for u, b in g]
         if rows and tot:
             out["holders"] = _holders(rows, tot)
+            out["holders_at_launch"] = "1"   # who got it at launch, not who holds it now
             out["_read"].append("launch allocations")
     except (ValueError, TypeError):
         pass

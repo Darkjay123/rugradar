@@ -282,3 +282,21 @@ def test_unlisted_network_old_deep_stablecoin_not_called_fake_but_young_copy_is(
     assert "IMPERSONATION" not in {x.code for x in scoring.assess(old, "0x" + "2" * 40)[2]}
     young = _facts(chain="mantle", symbol="USDT", liquidity_usd=20_000_000, pair_age_hours=10)
     assert "IMPERSONATION" in {x.code for x in scoring.assess(young, "0x" + "2" * 40)[2]}
+
+
+def test_selector_scan_reads_real_push4_only():
+    from rugradar import native
+    assert native._selectors("0x6340c10f1900") == {"40c10f19"}            # PUSH4 mint(address,uint256)
+    assert native._selectors("0x6634" + "0c10f19000") == set()              # '63' straddling bytes: not an opcode
+    assert native._selectors("0x6563" + "40c10f19") == set()                # '63' inside PUSH6 data
+
+
+def test_hyperliquid_launch_allocations_ignored_once_token_is_old():
+    from rugradar import scoring
+    from rugradar.models import TokenFacts
+    sec = {"holders": [{"address": "0xabc", "percent": "0.9"}], "holders_at_launch": "1", "is_mintable": "0"}
+    old = TokenFacts(chain="hyperliquid", symbol="HX", has_security_data=True, has_market_data=True, liquidity_usd=500_000,
+                     pair_age_hours=24 * 200, security=sec)
+    assert "WHALE_CONCENTRATION" not in {x.code for x in scoring.assess(old, "0x" + "a" * 32)[2]}
+    young = old.model_copy(update={"pair_age_hours": 10})
+    assert "WHALE_CONCENTRATION" in {x.code for x in scoring.assess(young, "0x" + "a" * 32)[2]}

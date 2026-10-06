@@ -263,6 +263,8 @@ def assess(f: TokenFacts, address: str = "", lang: str = "en") -> tuple[Verdict,
     # pools and bonding curves hold tokens for trading, not to dump: they never count as whales
     pools = {a.lower() for a in f.pool_addresses}
     holders = [h for h in (s.get("holders") or []) if (h.get("address") or h.get("account") or "").lower() not in pools]
+    if _flag(s, "holders_at_launch") and not young:
+        holders = []          # launch allocations of a token that's traded for a month say nothing about today
     if f.chain in CONTRACT_AWARE:  # our own readers tell contracts (pools, vaults, DAO treasuries) from people reliably
         holders = [h for h in holders if str(h.get("is_contract")) != "1"]
     top_unlocked = sum(_pct(h.get("percent")) or 0 for h in holders[:10]
