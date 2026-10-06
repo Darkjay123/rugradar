@@ -37,6 +37,7 @@ OFFICIAL = {
     "solana": {"USDC": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v", "USDT": "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB",
                "SOL": "So11111111111111111111111111111111111111112"},
 }
+CONTRACT_AWARE = {"icp", "starknet", "ton"}
 COPIED = {"USDT", "USDC", "WETH", "WBNB", "DAI", "WBTC", "BTCB", "ETH", "BTC", "BNB", "SOL"}
 CREATOR_FLAGS = {"phishing_activities": "phishing", "stealing_attack": "stealing funds", "honeypot_related_address": "honeypot scams",
                  "cybercrime": "cybercrime", "money_laundering": "money laundering", "sanctioned": "sanctions",
@@ -247,6 +248,8 @@ def assess(f: TokenFacts, address: str = "", lang: str = "en") -> tuple[Verdict,
     # pools and bonding curves hold tokens for trading, not to dump: they never count as whales
     pools = {a.lower() for a in f.pool_addresses}
     holders = [h for h in (s.get("holders") or []) if (h.get("address") or h.get("account") or "").lower() not in pools]
+    if f.chain in CONTRACT_AWARE:  # our own readers tell contracts (pools, vaults, DAO treasuries) from people reliably
+        holders = [h for h in holders if str(h.get("is_contract")) != "1"]
     top_unlocked = sum(_pct(h.get("percent")) or 0 for h in holders[:10]
                        if not h.get("is_locked") and (h.get("address") or h.get("account") or "").lower() not in DEAD)
     if f.chain == "solana" and (f.rugcheck or {}).get("top10_pct") is not None:

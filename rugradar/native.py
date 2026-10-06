@@ -777,6 +777,7 @@ def _stark_holders(token: str, blocks: int = 20000, pages: int = 2, top: int = 1
 
 # ----------------------------------------------------------------------------------------------- ICP
 ICP_BLACKHOLE = {"e3mmv-5qaaa-aaaah-aadma-cai"}
+ICP_NNS_ROOT = "r7inp-6aaaa-aaaaa-aaabq-cai"
 
 
 def icp(canister: str) -> dict | None:
@@ -790,6 +791,11 @@ def icp(canister: str) -> dict | None:
            "_read": ["who controls the token canister"]}
     try:
         led = G(f"https://icrc-api.internetcomputer.org/api/v2/ledgers/{canister}", ok404=True) or {}
+        dao = {ICP_NNS_ROOT, led.get("sns_root_canister_id")} - {None}
+        if ctrl and set(ctrl) <= dao:
+            # upgrades go through an on-chain DAO vote (NNS or the token's own SNS), not one person's key
+            out["code_replaceable"], out["admin_can_change"] = "0", "1"
+            out["_read"].append("controlled by DAO vote")
         md = led.get("icrc1_metadata") or {}
         if md:
             out["token_name"], out["token_symbol"] = md.get("icrc1_name"), md.get("icrc1_symbol")
