@@ -300,3 +300,14 @@ def test_hyperliquid_launch_allocations_ignored_once_token_is_old():
     assert "WHALE_CONCENTRATION" not in {x.code for x in scoring.assess(old, "0x" + "a" * 32)[2]}
     young = old.model_copy(update={"pair_age_hours": 10})
     assert "WHALE_CONCENTRATION" in {x.code for x in scoring.assess(young, "0x" + "a" * 32)[2]}
+
+
+def test_official_tether_with_usd_t_symbol_is_the_issuer():
+    from rugradar import scoring
+    from rugradar.models import TokenFacts
+    f = TokenFacts(chain="celo", symbol="USD₮", has_security_data=True, has_market_data=True, liquidity_usd=5_000_000,
+                   pair_age_hours=24 * 300, security={"slippage_modifiable": "1", "is_mintable": "1", "owner_address": "0xabc", "is_proxy": "1"})
+    v, _, out, _ = scoring.assess(f, "0x48065fbbe25f71c9282ddf5e1cd6d6a887483d5e")
+    assert v.value == "LOW_RISK" and "ISSUER_CONTROLLED" in {x.code for x in out}
+    v, _, out, _ = scoring.assess(f.model_copy(update={"pair_age_hours": 5, "liquidity_usd": 3_000}), "0x" + "3" * 40)
+    assert "IMPERSONATION" in {x.code for x in out}

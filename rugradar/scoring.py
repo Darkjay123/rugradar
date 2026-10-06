@@ -101,7 +101,7 @@ def assess(f: TokenFacts, address: str = "", lang: str = "en") -> tuple[Verdict,
         add("CONTRACT_NOT_SCANNED", Severity.medium, 25, chain=NAMES.get(f.chain, f.chain))
 
     # --- Fake copies of famous tokens (checked first: the most common newcomer trap)
-    sym = (f.symbol or "").strip().upper()
+    sym = (f.symbol or "").strip().upper().replace("₮", "T")   # Tether writes its symbol USD₮ on several networks
     official = OFFICIAL.get(f.chain, {})
     addr_cmp = address if not address.lower().startswith("0x") else address.lower()
     if sym in COPIED and official.get(sym) != addr_cmp and str(s.get("trust_list")) != "1":
@@ -272,7 +272,7 @@ def assess(f: TokenFacts, address: str = "", lang: str = "en") -> tuple[Verdict,
     if f.chain == "solana" and (f.rugcheck or {}).get("top10_pct") is not None:
         top_unlocked = f.rugcheck["top10_pct"]  # RugCheck is live and already excludes pools; GoPlus can lag a migration
     if top_unlocked > 0.5 and (f.chain != "solana" or young):
-        if any(x2.code in ("TRUSTED", "ISSUER_CONTROLLED") for x2 in out) or official.get(sym) == addr_cmp:
+        if any(x2.code in ("TRUSTED", "ISSUER_CONTROLLED") for x2 in out) or addr_cmp in official.values():
             # big trusted tokens sit mostly in exchange and bridge wallets: normal custody, not a dump risk
             add("WHALE_CONCENTRATION", Severity.info, 0, pct=f"{top_unlocked:.0%}")
         else:
@@ -321,7 +321,8 @@ def assess(f: TokenFacts, address: str = "", lang: str = "en") -> tuple[Verdict,
 
     # Big issued tokens (USDT, USDC...) keep freeze/pause/blacklist/mint powers by design: that's the issuer, not a trap.
     # Only for the official address or GoPlus's curated trust list; honeypot, tax and copy checks still count.
-    issuer = (sym in official and official.get(sym) == addr_cmp) or str(s.get("trust_list")) == "1"
+    # the official address is the issuer whatever symbol the token reports
+    issuer = addr_cmp in official.values() or str(s.get("trust_list")) == "1"
     if issuer:
         powers = {"OWNER_CHANGES_BALANCES", "PAUSABLE", "BLACKLIST", "MINTABLE", "TAX_CHANGEABLE", "UPGRADEABLE",
                   "CODE_REPLACEABLE", "ADMIN_CAN_CHANGE", "LIMITED_SCAN",
