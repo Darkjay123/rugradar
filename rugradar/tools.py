@@ -178,8 +178,13 @@ def rugcheck(address: str, trace: list) -> dict | None:
                 "top_wallet_is_creator": bool(top and creator and top.get("owner") == creator),
                 "top10_pct": round(sum(h.get("pct") or 0 for h in sorted(real, key=lambda h: -(h.get("pct") or 0))[:10]) / 100, 4) if real else None,
                 "pools": sorted(pools),
-                "holders": data.get("totalHolders")}
-    return _cached("rugcheck", f"rc3:{address}", 600, trace, fetch)
+                "holders": data.get("totalHolders"),
+                # wallets that really hold it (not pools, lockers, known exchange/program accounts, or the creator):
+                # the Solana test sale runs from these
+                "sell_candidates": [{"owner": h["owner"], "amount": str(h.get("amount") or 0)} for h in real
+                                    if h.get("owner") and h.get("owner") not in known and h.get("owner") != creator
+                                    and not h.get("insider")][:8]}
+    return _cached("rugcheck", f"rc4:{address}", 600, trace, fetch)
 
 
 def ngn_per_usd(trace: list) -> float | None:
