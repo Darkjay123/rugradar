@@ -247,3 +247,8 @@ def test_old_transfer_hook_is_only_info():
     new = TokenFacts(chain="aptos", has_security_data=True, security={"transfer_hook": "1"}, pair_age_hours=24 * 3)
     sev = lambda f: [x.severity.value for x in assess(f)[2] if x.code == "TRANSFER_HOOK"][0]
     assert sev(old) == "info" and sev(new) == "medium"
+
+
+def test_kava_tether_is_official():
+    from rugradar.scoring import OFFICIAL
+    assert OFFICIAL["kava"]["USDT"] == "0x919c1c267bc06a7039e03fcc2ef738525769109c"

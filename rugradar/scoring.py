@@ -31,6 +31,7 @@ OFFICIAL = {
     "algorand": {"USDC": "31566704", "USDT": "312769"},
     "near": {"USDT": "usdt.tether-token.near", "USDC": "17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1"},
     "sui": {"USDC": "0xdba34672e30cb065b1f93e3ab55318768fd6fef66c15942c9f7cb846e2f900e7::usdc::USDC"},
+    "kava": {"USDT": "0x919c1c267bc06a7039e03fcc2ef738525769109c"},  # Tether's own supported-protocols page
     "celo": {"USDT": "0x48065fbbe25f71c9282ddf5e1cd6d6a887483d5e", "USDC": "0xceba9300f2b948710d2653dd7b07f33a8b32118c"},
     "polkadot": {"USDT": "1984", "USDC": "1337"},
     "solana": {"USDC": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v", "USDT": "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB",
@@ -251,7 +252,11 @@ def assess(f: TokenFacts, address: str = "", lang: str = "en") -> tuple[Verdict,
     if f.chain == "solana" and (f.rugcheck or {}).get("top10_pct") is not None:
         top_unlocked = f.rugcheck["top10_pct"]  # RugCheck is live and already excludes pools; GoPlus can lag a migration
     if top_unlocked > 0.5 and (f.chain != "solana" or young):
-        add("WHALE_CONCENTRATION", Severity.high, 25, pct=f"{top_unlocked:.0%}")
+        if any(x2.code in ("TRUSTED", "ISSUER_CONTROLLED") for x2 in out) or official.get(sym) == addr_cmp:
+            # big trusted tokens sit mostly in exchange and bridge wallets: normal custody, not a dump risk
+            add("WHALE_CONCENTRATION", Severity.info, 0, pct=f"{top_unlocked:.0%}")
+        else:
+            add("WHALE_CONCENTRATION", Severity.high, 25, pct=f"{top_unlocked:.0%}")
 
     # --- Exit reality: what the biggest holder's sale would do to this pool (constant-product estimate)
     if f.chain == "solana":
