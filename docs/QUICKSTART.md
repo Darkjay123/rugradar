@@ -24,7 +24,17 @@ Cursor (`~/.cursor/mcp.json`):
 ```json
 { "mcpServers": { "rugradar": { "url": "https://rugradar-dun.vercel.app/mcp/" } } }
 ```
-Local over stdio: `pip install -r requirements.txt && python -m rugradar.mcp_server`
+Claude Code plugin (tools + skill + `/rugradar:check` command):
+```
+/plugin marketplace add Darkjay123/rugradar
+/plugin install rugradar@rugradar
+```
+Gemini CLI: `gemini extensions install https://github.com/Darkjay123/rugradar`
+
+Local over stdio (Claude Desktop config: `"command": "uvx", "args": ["--from", "git+https://github.com/Darkjay123/rugradar", "rugradar-mcp"]`):
+```bash
+uvx --from git+https://github.com/Darkjay123/rugradar rugradar-mcp
+```
 
 Tools: `check_token`, `scan_message`, `token_history`, `explain_finding`, `get_report`. All read-only.
 

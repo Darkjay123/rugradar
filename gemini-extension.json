@@ -1,0 +1,9 @@
+{
+  "name": "rugradar",
+  "version": "1.0.0",
+  "mcpServers": {
+    "rugradar": {
+      "httpUrl": "https://rugradar-dun.vercel.app/mcp/"
+    }
+  }
+}

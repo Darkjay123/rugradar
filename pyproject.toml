@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "rugradar"
+version = "1.0.0"
+description = "Check a crypto token for scams before you buy: rule-based verdicts on 64 networks, read-only, as an MCP server."
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = ["fastapi>=0.120", "httpx>=0.27", "pydantic>=2.6", "uvicorn>=0.29", "mcp>=1.9,<2", "pillow>=10"]
+
+[project.urls]
+Homepage = "https://rugradar-dun.vercel.app"
+Repository = "https://github.com/Darkjay123/rugradar"
+
+[project.scripts]
+rugradar-mcp = "rugradar.mcp_server:main"
+
+[tool.setuptools]
+packages = ["rugradar"]
+
+[tool.setuptools.package-data]
+rugradar = ["data/*"]

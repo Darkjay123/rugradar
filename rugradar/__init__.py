@@ -1,5 +1,5 @@
 """RugRadar: plain-English token scam checks for crypto newcomers."""
-__version__ = "0.1.0"
+__version__ = "1.0.0"
 
 # Accept the Gemini key under whatever name it was saved as in the host
 # (GEMINI_API_KEY, GEMINI_KEY, Gemini_key, GOOGLE_API_KEY, any casing).

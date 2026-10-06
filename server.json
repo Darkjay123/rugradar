@@ -1,0 +1,18 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.Darkjay123/rugradar",
+  "title": "RugRadar",
+  "description": "Check a crypto token, link or 'gem' message for scams before buying. Rule-based verdicts on 64 networks.",
+  "repository": {
+    "url": "https://github.com/Darkjay123/rugradar",
+    "source": "github"
+  },
+  "websiteUrl": "https://rugradar-dun.vercel.app",
+  "version": "1.0.0",
+  "remotes": [
+    {
+      "type": "streamable-http",
+      "url": "https://rugradar-dun.vercel.app/mcp/"
+    }
+  ]
+}

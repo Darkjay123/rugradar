@@ -1,0 +1,20 @@
+{
+  "name": "rugradar",
+  "version": "1.0.0",
+  "description": "Check any crypto token, link or 'gem' message for scams before buying. Rule-based verdict on 64 networks, read-only, no wallet or API key.",
+  "author": {
+    "name": "John Enechukwu",
+    "url": "https://github.com/Darkjay123"
+  },
+  "homepage": "https://rugradar-dun.vercel.app",
+  "repository": "https://github.com/Darkjay123/rugradar",
+  "keywords": [
+    "crypto",
+    "security",
+    "scam",
+    "honeypot",
+    "rug-pull",
+    "web3",
+    "mcp"
+  ]
+}

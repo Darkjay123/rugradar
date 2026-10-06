@@ -1,6 +1,7 @@
 """RugRadar as an MCP server, so any AI assistant (Claude Desktop, Cursor, an agent framework) can call it as a tool.
 
-Local:   python -m rugradar.mcp_server            (stdio)
+Local:   uvx --from git+https://github.com/Darkjay123/rugradar rugradar-mcp   (stdio)
+         python -m rugradar.mcp_server            (stdio, from a checkout)
 Remote:  https://rugradar-dun.vercel.app/mcp      (streamable HTTP, stateless)
 """
 from __future__ import annotations
@@ -60,5 +61,10 @@ def get_report(trace_id: str) -> dict:
     return rep or {"error": "no saved check with that id (they expire after 30 days)"}
 
 
-if __name__ == "__main__":
+def main() -> None:
+    """Console entry point: `rugradar-mcp` (stdio)."""
     mcp.run()
+
+
+if __name__ == "__main__":
+    main()

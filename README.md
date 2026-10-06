@@ -11,6 +11,22 @@ Built for first-time crypto buyers in Nigeria and across Africa, who get pulled 
 
 All 64 networks DexScreener lists, from Solana and Ethereum to TON, Sui, Tron, Hyperliquid and Polkadot. Coverage depth per network: [docs/CHAINS.md](docs/CHAINS.md).
 
+## Install it in your AI tool (one line)
+
+Free, read-only, no wallet, no API key. Pick yours:
+
+| Tool | How |
+|---|---|
+| Claude Code (plugin: MCP tools + skill + `/rugradar:check`) | `/plugin marketplace add Darkjay123/rugradar` then `/plugin install rugradar@rugradar` |
+| Claude Code (just the tools) | `claude mcp add --transport http rugradar https://rugradar-dun.vercel.app/mcp/` |
+| Cursor | [Add to Cursor](cursor://anysphere.cursor-deeplink/mcp/install?name=rugradar&config=eyJ1cmwiOiAiaHR0cHM6Ly9ydWdyYWRhci1kdW4udmVyY2VsLmFwcC9tY3AvIn0=) |
+| VS Code | [Add to VS Code](https://insiders.vscode.dev/redirect/mcp/install?name=rugradar&config=%7B%22type%22%3A%20%22http%22%2C%20%22url%22%3A%20%22https%3A//rugradar-dun.vercel.app/mcp/%22%7D) |
+| Gemini CLI | `gemini extensions install https://github.com/Darkjay123/rugradar` |
+| Claude Desktop, Windsurf, anything that runs a local server | `uvx --from git+https://github.com/Darkjay123/rugradar rugradar-mcp` |
+| Any MCP client | remote URL `https://rugradar-dun.vercel.app/mcp/` (streamable HTTP) |
+
+Then ask your assistant something like "is this token a scam? <address>" or paste the whole gem message.
+
 ## Use it from your own tools
 
 - **Quickstart** (browser, HTTP, MCP in Claude Code / Cursor, Agent Skill): [docs/QUICKSTART.md](docs/QUICKSTART.md)

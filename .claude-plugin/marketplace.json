@@ -1,0 +1,16 @@
+{
+  "name": "rugradar",
+  "owner": {
+    "name": "John Enechukwu",
+    "url": "https://github.com/Darkjay123"
+  },
+  "plugins": [
+    {
+      "name": "rugradar",
+      "source": "./",
+      "description": "Scam check for crypto tokens on 64 networks: MCP tools, an Agent Skill and a /rugradar:check command.",
+      "version": "1.0.0",
+      "category": "security"
+    }
+  ]
+}
