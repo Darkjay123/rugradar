@@ -6,6 +6,14 @@
 
 Built for first-time crypto buyers in Nigeria and across Africa, who get pulled into Telegram and X "gems" that turn out to be honeypots, tax rugs or owner-controlled tokens. No wallet connection, nothing to sign.
 
+
+## Use it from your own tools
+
+- **Quickstart** (browser, HTTP, MCP in Claude Code / Cursor, Agent Skill): [docs/QUICKSTART.md](docs/QUICKSTART.md)
+- **Agent Skill**: [skills/rugradar/](skills/rugradar/SKILL.md), drop it in your agent's skills folder
+- **Threat model**: [docs/THREAT_MODEL.md](docs/THREAT_MODEL.md)
+- **Shareable checks**: every live check saves a page at `/r/<id>` (30 days, noindex, public chain facts only) with a WhatsApp/X preview card
+
 ## How it works (5-minute read)
 
 ```

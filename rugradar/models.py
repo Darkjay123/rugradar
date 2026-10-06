@@ -107,6 +107,7 @@ class Report(BaseModel):
     sources: list[str] = Field(default_factory=list)
     lang: str = "en"
     share_text: str = ""
+    share_url: Optional[str] = None                           # saved report page anyone can open (online checks only)
     explained_by: str
     trace_id: str
     cost_usd: float = 0.0

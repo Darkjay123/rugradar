@@ -137,3 +137,34 @@ def test_store_outage_does_not_break_checks(monkeypatch):
     monkeypatch.setattr(store, "_DB", "/nonexistent/dir/x.sqlite")
     assert memory.last("bsc", ADDR) is None
     memory.remember("bsc", ADDR, "LOW_RISK", 0, 1, 1)  # must not raise
+
+
+def test_saved_report_drops_private_fields_and_page_escapes():
+    from rugradar import memory
+    from rugradar.page import render
+    rep = {"chain": "solana", "address": "So11111111111111111111111111111111111111112", "name": "<script>alert(1)</script>",
+           "symbol": "EVIL", "verdict": "HIGH_RISK", "score": 90, "summary": "Do not buy.", "lang": "en",
+           "findings": [{"code": "HONEYPOT", "severity": "critical", "points": 60, "plain": "You can't sell it."}],
+           "money": {"amount_ngn": 50000, "get_back_ngn": 0, "note": "nothing"}, "sources": ["GoPlus"],
+           "trace_id": "abc123def456", "checked_at": "2026-10-06T17:00:00Z",
+           "message_flags": [{"code": "SEND_TO_RECEIVE"}], "removed": ["phone"], "cost_usd": 0.001, "route": "small"}
+    memory.save_report("abc123def456", rep)
+    got = memory.get_report("abc123def456")
+    assert got and "message_flags" not in got and "removed" not in got and "cost_usd" not in got
+    html = render(got, "https://x.test")
+    assert "<script>alert(1)" not in html and "&lt;script&gt;" in html
+    assert 'name="robots" content="noindex"' in html and "og:title" in html and "₦50,000" in html
+
+
+def test_report_routes():
+    from fastapi.testclient import TestClient
+    from rugradar.api import app
+    from rugradar import memory
+    memory.save_report("feedbeef0001", {"chain": "bsc", "address": "0x" + "1" * 40, "verdict": "CAUTION", "score": 40,
+                                         "summary": "s", "findings": [], "lang": "pcm", "trace_id": "feedbeef0001"})
+    c = TestClient(app)
+    assert c.get("/r/feedbeef0001").status_code == 200
+    assert "Shine your eye" in c.get("/r/feedbeef0001").text
+    assert c.get("/api/report/feedbeef0001").json()["score"] == 40
+    assert c.get("/r/not-a-valid-id!").status_code == 404
+    assert c.get("/api/report/000000000000").status_code == 404

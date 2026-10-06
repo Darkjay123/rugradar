@@ -12,6 +12,8 @@ import time
 from . import store
 
 RUN_TTL = 7 * 24 * 3600
+REPORT_TTL = 30 * 24 * 3600
+PRIVATE_FIELDS = ("message_flags", "removed", "cost_usd", "route", "prompt_version")
 
 
 def _tok(chain: str, address: str) -> str:
@@ -63,3 +65,14 @@ def load_step(trace_id: str, step: str):
     """Returns (found, value)."""
     hit = store.safe(store.get, f"cp:{trace_id}:{step}")
     return (True, hit["v"]) if hit is not None else (False, None)
+
+
+# --- saved report pages (what a WhatsApp share link opens)
+def save_report(trace_id: str, report: dict):
+    """Only public chain facts are kept: anything about the pasted message or our internals is dropped."""
+    pub = {k: v for k, v in report.items() if k not in PRIVATE_FIELDS}
+    store.safe(store.put, f"rep:{trace_id}", pub, ttl=REPORT_TTL)
+
+
+def get_report(trace_id: str) -> dict | None:
+    return store.safe(store.get, f"rep:{trace_id}")

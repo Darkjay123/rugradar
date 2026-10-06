@@ -50,5 +50,13 @@ def explain_finding(code: str, lang: str = "en") -> dict:
     return {"code": code, "text": pcm if lang == "pcm" else en}
 
 
+@mcp.tool()
+def get_report(trace_id: str) -> dict:
+    """Fetch a saved RugRadar check by its id (the code at the end of a rugradar-dun.vercel.app/r/... link).
+    Saved checks last 30 days. Re-run check_token before relying on an old one: tokens change fast."""
+    rep = memory.get_report(trace_id[:32]) if trace_id.isalnum() else None
+    return rep or {"error": "no saved check with that id (they expire after 30 days)"}
+
+
 if __name__ == "__main__":
     mcp.run()

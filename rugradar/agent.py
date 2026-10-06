@@ -188,11 +188,13 @@ def run(req: CheckRequest, *, sec=None, pairs=None, sim=None, creator=None, rc=N
     coverage = None if offline else {"read": len(set(used)), "missing": [n for n in tried if n not in used]}
     label = {"LOW_RISK": "Low risk", "CAUTION": "Be careful", "HIGH_RISK": "HIGH RISK", "UNKNOWN": "Couldn't check"}[verdict.value]
     top = findings[0].plain if findings and findings[0].points else ""
-    share = f"RugRadar check: {label} ({score}/100). {top} Check any token before you buy: {SHARE_BASE}".replace("  ", " ")
+    share_url = f"{SHARE_BASE}/r/{trace_id}" if not offline and trace_id else None
+    share = (f"RugRadar check: {label} ({score}/100). {top} See the full check: {share_url}" if share_url else
+             f"RugRadar check: {label} ({score}/100). {top} Check any token before you buy: {SHARE_BASE}").replace("  ", " ")
     explain_step = next((s for s in reversed(trace) if s.get("step") == "explain"), {})
     rep = Report(chain=req.chain, address=req.address, name=(facts.name or "")[:40] or None, symbol=(facts.symbol or "")[:15] or None,
                  verdict=verdict, score=score, findings=findings, summary=summary, money=money,
-                 sources=list(dict.fromkeys(used)), lang=req.lang, share_text=share, explained_by=by, trace_id=trace_id,
+                 sources=list(dict.fromkeys(used)), lang=req.lang, share_text=share, share_url=share_url, explained_by=by, trace_id=trace_id,
                  cost_usd=round(cost, 6), latency_ms=int((time.time() - t0) * 1000),
                  message_flags=flags or [], removed=removed or [],
                  memory=memory.summarize(prev, verdict.value, score, facts.liquidity_usd),
@@ -206,6 +208,7 @@ def run(req: CheckRequest, *, sec=None, pairs=None, sim=None, creator=None, rc=N
                                      "codes": [f.code for f in findings], "summary": summary, "explained_by": by,
                                      "fixture": {"chain": req.chain, "address": req.address, "sec": got["sec"], "pairs": _slim_pairs(got["pairs"]),
                                                  "sim": got["sim"], "rc": got["rc"], "creator": creator, "fx": got["fx"], "exit": exit, "recorded_at_ms": now_ms}})
+        memory.save_report(trace_id, rep.model_dump(mode="json"))
         record_stats(rep, explain_step)
         try:
             with open(LOG, "a") as fh:

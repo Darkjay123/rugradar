@@ -1,7 +1,7 @@
 from pathlib import Path
 from collections import defaultdict
 from contextlib import asynccontextmanager
-import json, os, statistics, time
+import json, os, re, statistics, time
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import HTMLResponse, StreamingResponse
 from pydantic import BaseModel, Field, ValidationError
@@ -9,6 +9,8 @@ from .models import Report, Verdict
 from .agent import check_text, run_text, resume, InputError
 from .redact import redact
 from . import store, memory
+from .page import render as render_page
+from .agent import SHARE_BASE
 from .mcp_server import mcp
 
 mcp_app = mcp.streamable_http_app()
@@ -131,6 +133,31 @@ def api_stats():
                    "p50_ms": int(statistics.median([x["ms"] for x in v])),
                    "rejected_rate": round(sum(bool(x.get("rejected")) for x in v) / len(v), 3)} for k, v in by_arm.items()},
     }
+
+
+_TID = re.compile(r"^[a-f0-9]{8,32}$")
+
+
+def _saved(trace_id: str) -> dict:
+    rep = memory.get_report(trace_id) if _TID.match(trace_id) else None
+    if not rep:
+        raise HTTPException(404, "No saved check with that id. Saved checks last 30 days.")
+    return rep
+
+
+@app.get("/r/{trace_id}", response_class=HTMLResponse)
+def report_page(trace_id: str):
+    """What a shared link opens: the saved check, with a preview card for WhatsApp and X."""
+    try:
+        return render_page(_saved(trace_id), SHARE_BASE)
+    except HTTPException:
+        return HTMLResponse(f'<!doctype html><meta name="viewport" content="width=device-width,initial-scale=1"><body style="font-family:system-ui;padding:24px">'
+                            f'<h2>This check has expired or never existed.</h2><p><a href="{SHARE_BASE}/">Check a token now</a></p>', status_code=404)
+
+
+@app.get("/api/report/{trace_id}")
+def api_report(trace_id: str):
+    return _saved(trace_id)
 
 
 @app.get("/api/health")
