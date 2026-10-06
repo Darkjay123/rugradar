@@ -82,3 +82,9 @@ def test_graduated_pumpfun_token_is_not_new_and_pools_are_not_whales():
     f2 = build_facts("solana", sec, pairs[:1], now, rc={"top10_pct": 0.72, "pools": ["6SbqxApnTaVS73ZnKRULwWRYcdf7RKf6maaJEiyXjszC"]})
     _, _, findings2, _ = scoring.assess(f2, "DNq98kymaw7GxhvLDTtrpUTBzi3L2KvnSedutZMyVhbm", "en")
     assert "WHALE_CONCENTRATION" in [x.code for x in findings2]
+
+
+def test_rugcheck_read_is_credited_as_a_source():
+    from rugradar import tools
+    import inspect
+    assert '_cached("rugcheck",' in inspect.getsource(tools.rugcheck)

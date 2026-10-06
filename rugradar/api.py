@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 from collections import defaultdict
 from contextlib import asynccontextmanager
@@ -191,4 +192,7 @@ def api_report(trace_id: str):
 
 @app.get("/api/health")
 def health():
-    return {"ok": True, "version": app.version, "store": store.backend()}
+    # which optional features are switched on (never the keys themselves)
+    return {"ok": True, "version": app.version, "store": store.backend(),
+            "ai_summaries": bool(os.environ.get("GEMINI_API_KEY") or os.environ.get("FALLBACK_API_KEY")),
+            "telegram": bool(os.environ.get("TELEGRAM_BOT_TOKEN"))}
