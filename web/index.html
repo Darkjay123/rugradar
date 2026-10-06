@@ -45,7 +45,7 @@ const flags=j.message_flags&&j.message_flags.length?`<div class="warn"><b>${T2[l
 $('#out').innerHTML=`${flags}<div class="card"><div class="v ${j.verdict}">${L[lang].labels[j.verdict]} · ${j.score}/100</div>
 <div class="tok">${esc(tok)} · ${esc(j.chain)} · ${esc(j.address)}</div>${j.memory?`<div class="mem">${esc(T2[lang].mem(j.memory))}</div>`:''}<p>${esc(j.summary)}</p>
 ${j.money?`<div class="money">${esc(j.money.note)}</div>`:''}<ul>${items}</ul>
-<div class="meta">${L[lang].src}: ${esc(j.sources.join(', ')||'-')} · ${j.latency_ms} ms</div>
+<div class="meta">${L[lang].src}: ${esc(j.sources.join(', ')||'-')}${j.coverage&&j.coverage.missing.length?` · ${lang==='pcm'?'We no fit read':'Couldn\'t read'}: ${esc(j.coverage.missing.join(', '))}`:''}${j.checked_at?` · ${lang==='pcm'?'We check am':'Checked'} ${new Date(j.checked_at).toLocaleTimeString([],{hour:'numeric',minute:'2-digit'})}`:''}</div>
 <div class="share"><a class="wa" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(share)}">${L[lang].wa}</a>
 <button class="cp" type="button" id="cp">${L[lang].cp}</button></div>
 <div class="fb" id="fb">${T2[lang].fbq} <button type="button" data-v="up">👍</button><button type="button" data-v="down">👎</button></div></div>`;

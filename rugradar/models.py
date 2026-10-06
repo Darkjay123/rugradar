@@ -83,6 +83,9 @@ class TokenFacts(BaseModel):
     rugcheck: Optional[dict] = None   # RugCheck summary (Solana)
     ngn_per_usd: Optional[float] = None
     previous: Optional[dict] = None   # last time we checked this token (memory)
+    pool_tokens: Optional[float] = None  # tokens sitting in the main pool (DexScreener liquidity.base)
+    supply: Optional[float] = None       # fdv / price
+    exit: Optional[dict] = None          # live round-trip quote for the user's amount (Solana, Jupiter)
 
 
 class Money(BaseModel):
@@ -114,3 +117,5 @@ class Report(BaseModel):
     route: str = "rules"                                       # which explanation path ran
     prompt_version: Optional[str] = None
     timed_out: list[str] = Field(default_factory=list)        # sources that missed the time budget
+    coverage: Optional[dict] = None                            # which sources we read and which we couldn't
+    checked_at: Optional[str] = None                           # when this snapshot was taken (UTC)

@@ -205,6 +205,30 @@ def assess(f: TokenFacts, address: str = "", lang: str = "en") -> tuple[Verdict,
     if top_unlocked > 0.5 and (f.chain != "solana" or young):
         add("WHALE_CONCENTRATION", Severity.high, 25, pct=f"{top_unlocked:.0%}")
 
+    # --- Exit reality: what the biggest holder's sale would do to this pool (constant-product estimate)
+    if f.chain == "solana":
+        tw = (f.rugcheck or {}).get("top_wallet_pct")
+    else:
+        tw = max((_pct(h.get("percent")) or 0 for h in holders if not h.get("is_locked") and str(h.get("is_contract")) != "1"
+                  and (h.get("address") or "").lower() not in DEAD), default=None)
+    if young and tw and tw >= 0.05 and f.pool_tokens and f.supply and f.pool_tokens > 0:
+        x, sold = f.pool_tokens, tw * f.supply
+        drop = 1 - (x / (x + sold)) ** 2
+        if drop >= 0.6:
+            held = any(x2.code in ("ONE_WALLET_HOLDS", "ONE_WALLET_HOLDS_SOME", "WHALE_CONCENTRATION") for x2 in out)
+            add("WHALE_EXIT", Severity.medium, 5 if held else 15, pct=f"{tw:.0%}", drop=("over 90%" if lang != "pcm" else "pass 90%") if drop > 0.9 else f"{drop:.0%}")
+
+    # --- Your own exit: a live round-trip quote for the amount you typed (Solana)
+    ex = f.exit or {}
+    if ex and not ex.get("sell_route"):
+        add("NO_SELL_ROUTE", Severity.medium, 15)
+    elif ex.get("ratio"):
+        loss = 1 - ex["ratio"]
+        if loss >= 0.15:
+            add("THIN_EXIT", Severity.high, 20, a=f"{ex.get('ngn', 0):,}", pct=f"{loss:.0%}")
+        elif loss >= 0.05:
+            add("THIN_EXIT", Severity.medium, 10, a=f"{ex.get('ngn', 0):,}", pct=f"{loss:.0%}")
+
     # --- Memory: pool money pulled since we last looked = a rug in progress
     prev = f.previous or {}
     pl, nl = prev.get("liquidity_usd"), f.liquidity_usd

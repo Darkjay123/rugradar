@@ -6,6 +6,7 @@ progress instead of showing a spinner. check() simply drains it.
 """
 from __future__ import annotations
 import json, os, time, uuid
+from datetime import datetime, timezone
 from concurrent.futures import ThreadPoolExecutor, as_completed, TimeoutError as FutTimeout
 from .models import CheckRequest, Report, TokenFacts, Verdict, Money, CHAINS
 from . import tools, scoring, explain as ex, parse, memory, store
@@ -16,10 +17,12 @@ LOG = os.environ.get("RUGRADAR_LOG", "/tmp/rugradar_traces.jsonl")
 SHARE_BASE = os.environ.get("RUGRADAR_URL", "https://rugradar-dun.vercel.app")
 RUN_BUDGET_S = float(os.environ.get("RUGRADAR_RUN_BUDGET_S", "20"))  # whole-check time budget
 SOURCE_NAMES = {"goplus": "GoPlus contract scan", "honeypot_sim": "Honeypot.is test trade", "dexscreener": "DexScreener market data",
-                "creator_wallet": "creator wallet history", "rugcheck": "RugCheck report"}
+                "creator_wallet": "creator wallet history", "rugcheck": "RugCheck report",
+                "jupiter": "Jupiter live sell quote"}
 STEP_LABELS = {"goplus": "Scanning the contract code", "dexscreener": "Checking the market and pool",
                "honeypot_sim": "Running a test buy and sell", "rugcheck": "Pulling the Solana risk report",
-               "fx": "Getting today's naira rate", "creator_wallet": "Checking the creator's wallet history"}
+               "fx": "Getting today's naira rate", "creator_wallet": "Checking the creator's wallet history",
+               "jupiter": "Getting a live quote to sell it back"}
 
 
 class InputError(ValueError):
@@ -55,7 +58,7 @@ def resolve(text: str, chain: str | None, trace: list) -> tuple[str, str]:
     return chain, addr
 
 
-def build_facts(chain: str, sec: dict | None, pairs: list, now_ms: float, sim=None, creator=None, rc=None, fx=None, previous=None) -> TokenFacts:
+def build_facts(chain: str, sec: dict | None, pairs: list, now_ms: float, sim=None, creator=None, rc=None, fx=None, previous=None, exit=None) -> TokenFacts:
     sec = sec or {}
     best = max(pairs, key=lambda p: (p.get("liquidity") or {}).get("usd") or 0) if pairs else None
     age = max(0.0, (now_ms - best["pairCreatedAt"]) / 3_600_000) if best and best.get("pairCreatedAt") else None
@@ -71,6 +74,9 @@ def build_facts(chain: str, sec: dict | None, pairs: list, now_ms: float, sim=No
         pair_age_hours=age, buy_tax=_f(sec.get("buy_tax")), sell_tax=_f(sec.get("sell_tax")),
         security=sec, has_security_data=bool(sec), has_market_data=bool(best),
         sim=sim, creator=creator, rugcheck=rc, ngn_per_usd=fx, previous=previous,
+        pool_tokens=_f(((best or {}).get("liquidity") or {}).get("base")),
+        supply=(_f((best or {}).get("fdv")) / _f(best.get("priceUsd"))) if best and _f(best.get("fdv")) and _f(best.get("priceUsd")) else None,
+        exit=exit,
     )
 
 
@@ -80,6 +86,13 @@ def money_line(verdict: Verdict, f: TokenFacts, findings, amount: int, lang: str
     stuck = any(x.code in ("HONEYPOT", "HOLDERS_STUCK", "SOL_NON_TRANSFERABLE", "CANNOT_SELL_ALL") for x in findings)
     if stuck or not f.has_market_data:
         return Money(amount_ngn=amount, get_back_ngn=0, note=t("MONEY_ZERO", lang, a=f"{amount:,}"))
+    ex = f.exit or {}
+    if ex.get("ratio"):
+        back = amount * ex["ratio"]
+        back = int(round(back, -2)) if back >= 1000 else int(back)
+        if verdict == Verdict.low or ex["ratio"] <= 0.95:
+            return Money(amount_ngn=amount, get_back_ngn=back, note=t("MONEY_LIVE", lang, a=f"{amount:,}", b=f"{back:,}"))
+        return None
     taxes = (f.buy_tax or 0) + (f.sell_tax or 0)
     if verdict != Verdict.low and taxes < 0.05:
         return None  # the risk here isn't tax, so a "you'd get ~all of it back" line would mislead
@@ -95,7 +108,7 @@ def _slim_pairs(pairs):
 
 
 def run(req: CheckRequest, *, sec=None, pairs=None, sim=None, creator=None, rc=None, fx=None, now_ms=None,
-        offline=False, trace=None, trace_id=None, flags=None, removed=None, use_memory=None, previous=None):
+        offline=False, trace=None, trace_id=None, flags=None, removed=None, use_memory=None, previous=None, exit=None):
     """Yields {"type": "step"|"report", ...}. Tool outputs can be injected (evals replay data with offline=True)."""
     trace_id, t0, trace = trace_id or uuid.uuid4().hex[:12], time.time(), trace if trace is not None else []
     now_ms = now_ms or time.time() * 1000
@@ -151,9 +164,14 @@ def run(req: CheckRequest, *, sec=None, pairs=None, sim=None, creator=None, rc=N
             yield {"type": "step", "tool": "creator_wallet", "label": STEP_LABELS["creator_wallet"], "status": "started"}
             creator = step("creator_wallet", tools.creator_check, req.chain, got["sec"].get("creator_address"), trace)
             yield {"type": "step", "tool": "creator_wallet", "label": STEP_LABELS["creator_wallet"], "status": "done" if creator else "no data"}
+        if exit is None and req.chain == "solana" and got["fx"] and got["pairs"] and time.time() - t0 < RUN_BUDGET_S:
+            yield {"type": "step", "tool": "jupiter", "label": STEP_LABELS["jupiter"], "status": "started"}
+            exit = step("jupiter", tools.jupiter_roundtrip, req.address, req.amount_ngn / got["fx"], trace)
+            yield {"type": "step", "tool": "jupiter", "label": STEP_LABELS["jupiter"], "status": "done" if exit else "no data"}
 
     prev = previous if previous is not None else (memory.last(req.chain, req.address) if use_memory else None)
-    facts = build_facts(req.chain, got["sec"], got["pairs"] or [], now_ms, got["sim"], creator, got["rc"], got["fx"], prev)
+    facts = build_facts(req.chain, got["sec"], got["pairs"] or [], now_ms, got["sim"], creator, got["rc"], got["fx"], prev,
+                        dict(exit, ngn=req.amount_ngn) if exit else None)
     verdict, score, findings, facts = scoring.assess(facts, req.address, req.lang)
     if timed_out and verdict == Verdict.low:  # never call it low risk on half the evidence
         verdict = Verdict.unknown if not facts.has_security_data else Verdict.caution
@@ -165,7 +183,9 @@ def run(req: CheckRequest, *, sec=None, pairs=None, sim=None, creator=None, rc=N
     used = [SOURCE_NAMES[s["tool"]] for s in trace if s.get("tool") in SOURCE_NAMES and (s.get("found") or s.get("cached") or s.get("resumed")) and "error" not in s]
     if offline:
         used = [n for k, n in SOURCE_NAMES.items() if {"goplus": got["sec"], "honeypot_sim": got["sim"], "dexscreener": got["pairs"],
-                                                      "creator_wallet": creator, "rugcheck": got["rc"]}[k]]
+                                                      "creator_wallet": creator, "rugcheck": got["rc"], "jupiter": exit}[k]]
+    tried = list(dict.fromkeys(SOURCE_NAMES[s["tool"]] for s in trace if s.get("tool") in SOURCE_NAMES and not s.get("skipped")))
+    coverage = None if offline else {"read": len(set(used)), "missing": [n for n in tried if n not in used]}
     label = {"LOW_RISK": "Low risk", "CAUTION": "Be careful", "HIGH_RISK": "HIGH RISK", "UNKNOWN": "Couldn't check"}[verdict.value]
     top = findings[0].plain if findings and findings[0].points else ""
     share = f"RugRadar check: {label} ({score}/100). {top} Check any token before you buy: {SHARE_BASE}".replace("  ", " ")
@@ -176,7 +196,8 @@ def run(req: CheckRequest, *, sec=None, pairs=None, sim=None, creator=None, rc=N
                  cost_usd=round(cost, 6), latency_ms=int((time.time() - t0) * 1000),
                  message_flags=flags or [], removed=removed or [],
                  memory=memory.summarize(prev, verdict.value, score, facts.liquidity_usd),
-                 route=explain_step.get("route", "template"), prompt_version=explain_step.get("prompt"), timed_out=timed_out)
+                 route=explain_step.get("route", "template"), prompt_version=explain_step.get("prompt"), timed_out=timed_out,
+                 coverage=coverage, checked_at=datetime.fromtimestamp(t0, timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"))
 
     if not offline:
         if use_memory and verdict != Verdict.unknown:
@@ -184,7 +205,7 @@ def run(req: CheckRequest, *, sec=None, pairs=None, sim=None, creator=None, rc=N
         memory.finish_run(trace_id, {"req": req.model_dump(), "verdict": verdict.value, "score": score,
                                      "codes": [f.code for f in findings], "summary": summary, "explained_by": by,
                                      "fixture": {"chain": req.chain, "address": req.address, "sec": got["sec"], "pairs": _slim_pairs(got["pairs"]),
-                                                 "sim": got["sim"], "rc": got["rc"], "creator": creator, "fx": got["fx"], "recorded_at_ms": now_ms}})
+                                                 "sim": got["sim"], "rc": got["rc"], "creator": creator, "fx": got["fx"], "exit": exit, "recorded_at_ms": now_ms}})
         record_stats(rep, explain_step)
         try:
             with open(LOG, "a") as fh:

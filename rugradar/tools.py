@@ -24,7 +24,7 @@ class ToolError(Exception):
 
 
 # Least privilege: data tools are GET-only and may only reach these hosts. No keys, no wallets, no writes.
-ALLOWED_HOSTS = {"api.gopluslabs.io", "api.honeypot.is", "api.dexscreener.com", "api.rugcheck.xyz", "open.er-api.com"}
+ALLOWED_HOSTS = {"api.gopluslabs.io", "api.honeypot.is", "api.dexscreener.com", "api.rugcheck.xyz", "open.er-api.com", "lite-api.jup.ag"}
 
 
 class NotAllowed(ToolError):
@@ -154,3 +154,27 @@ def ngn_per_usd(trace: list) -> float | None:
         return {"rate": rate} if rate else None
     out = _cached("fx", "fx:usd:ngn", 6 * 3600, trace, fetch)
     return (out or {}).get("rate")
+
+
+USDC_SOL = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"
+
+
+def jupiter_roundtrip(mint: str, usd: float, trace: list) -> dict | None:
+    """Live Jupiter quotes: spend `usd` of USDC on the token, then sell exactly what you'd get straight back.
+    The ratio is what this pool really returns for this size right now (an estimate, not a trade)."""
+    usd = max(1.0, min(float(usd), 1_000_000.0))
+
+    def fetch():
+        q = "https://lite-api.jup.ag/swap/v1/quote"
+        amt = int(usd * 1_000_000)
+        buy = _get_json(q, {"inputMint": USDC_SOL, "outputMint": mint, "amount": amt, "slippageBps": 300}, tries=2, ok404=True)
+        out = int((buy or {}).get("outAmount") or 0)
+        if not out:
+            return None
+        sell = _get_json(q, {"inputMint": mint, "outputMint": USDC_SOL, "amount": out, "slippageBps": 300}, tries=2, ok404=True)
+        back = int((sell or {}).get("outAmount") or 0)
+        if not back:
+            return {"in_usd": usd, "back_usd": 0.0, "ratio": 0.0, "sell_route": False}
+        return {"in_usd": usd, "back_usd": back / 1_000_000, "ratio": round(back / amt, 4), "sell_route": True,
+                "buy_impact": float(buy.get("priceImpactPct") or 0), "sell_impact": float(sell.get("priceImpactPct") or 0)}
+    return _cached("jupiter", f"jup:{mint}:{round(usd)}", 120, trace, fetch)
