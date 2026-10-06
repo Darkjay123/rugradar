@@ -15,7 +15,7 @@ def _f(v):
         return None
 
 
-def build_facts(sec: dict | None, pairs: list, now_ms: float) -> TokenFacts:
+def build_facts(sec: dict | None, pairs: list, now_ms: float, sim: dict | None = None) -> TokenFacts:
     sec = sec or {}
     best = max(pairs, key=lambda p: (p.get("liquidity") or {}).get("usd") or 0) if pairs else None
     age = None
@@ -32,10 +32,11 @@ def build_facts(sec: dict | None, pairs: list, now_ms: float) -> TokenFacts:
         security=sec,
         has_security_data=bool(sec),
         has_market_data=bool(best),
+        sim=sim,
     )
 
 
-def check(req: CheckRequest, *, sec=None, pairs=None, now_ms=None) -> Report:
+def check(req: CheckRequest, *, sec=None, pairs=None, sim=None, now_ms=None, offline=False) -> Report:
     """sec/pairs can be injected (evals replay recorded tool output)."""
     trace_id, t0, trace = uuid.uuid4().hex[:12], time.time(), []
     now_ms = now_ms or time.time() * 1000
@@ -51,7 +52,12 @@ def check(req: CheckRequest, *, sec=None, pairs=None, now_ms=None) -> Report:
         except tools.ToolError as e:
             trace.append({"tool": "dexscreener", "error": str(e)[:120]})
             pairs = []
-    facts = build_facts(sec, pairs or [], now_ms)
+    if sim is None and not offline and time.time() - t0 < TIME_BUDGET_S:
+        try:
+            sim = tools.honeypot_sim(req.chain, req.address, trace)
+        except tools.ToolError as e:
+            trace.append({"tool": "honeypot_sim", "error": str(e)[:120]})
+    facts = build_facts(sec, pairs or [], now_ms, sim)
     verdict, score, findings = scoring.assess(facts)
     trace.append({"step": "rules", "verdict": verdict.value, "score": score, "codes": [f.code for f in findings]})
     summary, by, cost = ex.explain(verdict, findings, trace)

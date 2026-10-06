@@ -62,6 +62,7 @@ class TokenFacts(BaseModel):
     security: dict = Field(default_factory=dict)
     has_security_data: bool = False
     has_market_data: bool = False
+    sim: Optional[dict] = None  # honeypot.is buy/sell simulation
 
 
 class Report(BaseModel):

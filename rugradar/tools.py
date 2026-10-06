@@ -55,3 +55,37 @@ def dexscreener_pairs(chain: str, address: str, trace: list) -> list:
     cache.put(key, pairs, ttl=120)  # market data goes stale fast
     trace.append({"tool": "dexscreener", "cached": False, "ms": int((time.time() - t0) * 1000), "pairs": len(pairs)})
     return pairs
+
+
+HP_CHAINS = {"ethereum": "1", "bsc": "56", "base": "8453"}
+
+
+def honeypot_sim(chain: str, address: str, trace: list) -> dict | None:
+    """Independent second source: honeypot.is simulates a real buy AND sell on a fork.
+    Returns None when the chain isn't supported or no pool exists."""
+    if chain not in HP_CHAINS:
+        trace.append({"tool": "honeypot_sim", "skipped": "chain"})
+        return None
+    key = f"hp:{chain}:{address}"
+    hit = cache.get(key)
+    if hit is not None:
+        trace.append({"tool": "honeypot_sim", "cached": True, "ms": 0})
+        return hit or None
+    t0 = time.time()
+    try:
+        r = httpx.get("https://api.honeypot.is/v2/IsHoneypot", params={"address": address, "chainID": HP_CHAINS[chain]},
+                      timeout=12, headers={"User-Agent": "rugradar/0.1"})
+    except httpx.HTTPError as e:
+        raise ToolError(f"honeypot.is: {e}")
+    data = r.json() if r.headers.get("content-type", "").startswith("application/json") else {}
+    out = None
+    if r.status_code == 200 and data.get("simulationSuccess") is not None:
+        sim = data.get("simulationResult") or {}
+        out = {"ok": bool(data.get("simulationSuccess")),
+               "is_honeypot": bool((data.get("honeypotResult") or {}).get("isHoneypot")),
+               "reason": (data.get("honeypotResult") or {}).get("honeypotReason"),
+               "buy_tax": sim.get("buyTax"), "sell_tax": sim.get("sellTax"),
+               "holders_failed": (data.get("holderAnalysis") or {}).get("failed")}
+    cache.put(key, out or {}, ttl=600)
+    trace.append({"tool": "honeypot_sim", "cached": False, "ms": int((time.time() - t0) * 1000), "found": bool(out)})
+    return out

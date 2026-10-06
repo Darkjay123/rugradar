@@ -17,11 +17,11 @@ def run_case(c):
     if "fixture" in c:
         fx = json.loads((HERE / "fixtures" / f"{c['fixture']}.json").read_text())
         req = CheckRequest(chain=fx["chain"], address=fx["address"])
-        return check(req, sec=fx["sec"], pairs=fx["pairs"], now_ms=fx["recorded_at_ms"])
+        return check(req, sec=fx["sec"], pairs=fx["pairs"], sim=fx.get("sim"), now_ms=fx["recorded_at_ms"], offline=True)
     s = c["synthetic"]
     now = 1_800_000_000_000
     pairs = [] if s["liquidity"] is None else [{"liquidity": {"usd": s["liquidity"]}, "pairCreatedAt": now - s["age_h"] * 3_600_000, "baseToken": {}}]
-    return check(CheckRequest(chain="bsc", address=DUMMY), sec=s["sec"], pairs=pairs, now_ms=now)
+    return check(CheckRequest(chain="bsc", address=DUMMY), sec=s["sec"], pairs=pairs, sim=s.get("sim"), now_ms=now, offline=True)
 
 
 def grade(c, rep):

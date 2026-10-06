@@ -25,9 +25,22 @@ def assess(f: TokenFacts) -> tuple[Verdict, int, list[Finding]]:
         return Verdict.unknown, 0, [Finding(code="NO_DATA", severity=Severity.info, points=0,
                                             plain="We couldn't find this token on this chain. Double-check the chain and address before you send money.")]
 
-    # Critical: you can buy but can't get out
-    if _flag(s, "is_honeypot"):
-        add("HONEYPOT", Severity.critical, 100, "This looks like a honeypot: people can buy it but can't sell it.")
+    # Critical: you can buy but can't get out. Two independent sources: static scan + live simulation.
+    sim = f.sim or {}
+    static_hp, sim_hp = _flag(s, "is_honeypot"), bool(sim.get("is_honeypot"))
+    if static_hp or sim_hp:
+        how = "a test sale failed" if sim_hp else "its code blocks selling"
+        add("HONEYPOT", Severity.critical, 100, f"This is a honeypot: people can buy it but can't sell it ({how}).")
+    if sim and (static_hp != sim_hp) and sim.get("ok"):
+        add("SOURCES_DISAGREE", Severity.medium, 10, "Our two safety checks disagree on whether you can sell, so we're treating it as dangerous to be safe.")
+    sim_sell = _pct(sim.get("sell_tax"))
+    if sim_sell is not None:
+        sim_sell = sim_sell / 100
+        if f.sell_tax is None or sim_sell > f.sell_tax:
+            f = f.model_copy(update={"sell_tax": sim_sell})
+    sim_buy = _pct(sim.get("buy_tax"))
+    if sim_buy is not None and (f.buy_tax is None or sim_buy / 100 > f.buy_tax):
+        f = f.model_copy(update={"buy_tax": sim_buy / 100})
     if _flag(s, "cannot_sell_all"):
         add("CANNOT_SELL_ALL", Severity.critical, 60, "The contract stops holders from selling everything they own.")
     if _flag(s, "owner_change_balance"):
@@ -74,6 +87,9 @@ def assess(f: TokenFacts) -> tuple[Verdict, int, list[Finding]]:
                        if not h.get("is_locked") and h.get("address", "").lower() != "0x000000000000000000000000000000000000dead")
     if top_unlocked > 0.5:
         add("WHALE_CONCENTRATION", Severity.high, 25, f"The top 10 wallets hold about {top_unlocked:.0%} of the supply and could dump at once.")
+
+    if sim.get("ok") and not sim_hp and (sim_sell or 0) < 0.1:
+        add("TEST_SALE_OK", Severity.info, 0, "We ran a test buy and sell and both went through.")
 
     score = min(100, sum(x.points for x in out))
     if any(x.severity == Severity.critical for x in out) or score >= 60:
