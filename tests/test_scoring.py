@@ -155,3 +155,12 @@ def test_64_hex_key_still_removed_but_token_links_survive():
     link = "https://dexscreener.com/starknet/0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d"
     assert link in redact(link)[0]
     assert ("0x" + "ab" * 32 + "::coin::COIN") in redact("0x" + "ab" * 32 + "::coin::COIN")[0]
+
+
+def test_gemini_key_alias(monkeypatch):
+    import importlib, rugradar
+    monkeypatch.delenv("GEMINI_API_KEY", raising=False)
+    monkeypatch.setenv("Gemini_key", "abc123")
+    importlib.reload(rugradar)
+    import os
+    assert os.environ["GEMINI_API_KEY"] == "abc123"
