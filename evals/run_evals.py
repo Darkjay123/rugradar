@@ -8,6 +8,7 @@ os.environ["RUGRADAR_LOG"] = "/tmp/rugradar_eval_traces.jsonl"
 from rugradar.agent import check
 from rugradar.models import CheckRequest
 from rugradar import parse
+from rugradar.redact import message_flags, redact
 
 HERE = pathlib.Path(__file__).parent
 THRESHOLD = float(os.environ.get("EVAL_THRESHOLD", "1.0"))
@@ -27,7 +28,8 @@ def run_case(c):
     addr = s.get("address") or DUMMY.get(chain, "0x" + "1" * 40)
     pairs = [] if s["liquidity"] is None else [{"liquidity": {"usd": s["liquidity"]}, "pairCreatedAt": NOW - s["age_h"] * 3_600_000, "baseToken": {}}]
     return check(CheckRequest(chain=chain, address=addr, lang=lang), sec=s["sec"], pairs=pairs, sim=s.get("sim"),
-                 creator=s.get("creator"), rc=s.get("rc"), fx=1500.0, now_ms=NOW, offline=True)
+                 creator=s.get("creator"), rc=s.get("rc"), fx=1500.0, now_ms=NOW, offline=True,
+                 previous=s.get("previous"))
 
 
 def grade(c, rep):
@@ -45,6 +47,17 @@ def grade(c, rep):
     return errs
 
 
+def run_message(c):
+    """Pitch scanning + redaction: flags must fire, private data must never survive into what we store."""
+    codes = {f["code"] for f in message_flags(c["message"])}
+    clean, removed = redact(c["message"])
+    errs = [f"missing flag {x}" for x in c.get("expect_flags", []) if x not in codes]
+    errs += [f"unexpected flag {x}" for x in c.get("no_flags", []) if x in codes]
+    errs += [f"leaked '{x}'" for x in c.get("must_strip", []) if x in clean]
+    errs += [f"lost '{x}'" for x in c.get("must_keep", []) if x not in clean]
+    return errs
+
+
 def run_parse(c):
     got = parse.extract(c["text"])
     errs = [f"{k}={got.get(k)!r} != {v!r}" for k, v in c["expect_parse"].items() if got.get(k) != v]
@@ -56,6 +69,8 @@ passed = 0
 for c in cases:
     if "expect_parse" in c:
         errs, tag = run_parse(c), "parse"
+    elif "message" in c:
+        errs, tag = run_message(c), "message"
     else:
         rep = run_case(c)
         errs, tag = grade(c, rep), f"{rep.verdict.value:<10} {rep.score:>3}"

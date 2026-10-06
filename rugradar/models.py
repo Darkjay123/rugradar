@@ -82,6 +82,7 @@ class TokenFacts(BaseModel):
     creator: Optional[dict] = None    # GoPlus address-security flags for the deployer wallet
     rugcheck: Optional[dict] = None   # RugCheck summary (Solana)
     ngn_per_usd: Optional[float] = None
+    previous: Optional[dict] = None   # last time we checked this token (memory)
 
 
 class Money(BaseModel):
@@ -107,3 +108,9 @@ class Report(BaseModel):
     trace_id: str
     cost_usd: float = 0.0
     latency_ms: int = 0
+    message_flags: list[dict] = Field(default_factory=list)   # red flags in the pasted pitch itself
+    removed: list[str] = Field(default_factory=list)          # private data we stripped before logging
+    memory: Optional[dict] = None                              # what changed since this token was last checked
+    route: str = "rules"                                       # which explanation path ran
+    prompt_version: Optional[str] = None
+    timed_out: list[str] = Field(default_factory=list)        # sources that missed the time budget

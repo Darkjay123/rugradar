@@ -1,5 +1,7 @@
 """Every finding in plain English and in Nigerian Pidgin. Values are filled in by the rules engine."""
 T = {
+ "LIQUIDITY_PULLED": ("{pct} of the pool money has been pulled out since we last checked this token {h} hours ago. That is how a rug pull looks while it's happening.",
+                      "Dem don comot {pct} of the pool money since we check this token {h} hours ago. Na so rug pull dey look when e dey happen."),
  "NO_DATA": ("We couldn't find this token on this chain. Double-check the chain and address before you send money.",
              "We no fit find this token for this chain. Check the chain and address well before you send money."),
  "HONEYPOT": ("This is a honeypot: people can buy it but can't sell it ({how}).",

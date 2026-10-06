@@ -16,6 +16,9 @@ button{background:var(--g);color:#05140c;font-weight:700;border:0;cursor:pointer
 ul{padding-left:18px;margin:10px 0 0}li{margin:6px 0}.ok{color:var(--g)}.meta{color:var(--mute);font-size:13px;margin-top:12px}
 .share{display:flex;gap:8px;margin-top:14px}.share a,.share button{flex:1;text-align:center;text-decoration:none;padding:11px;border-radius:10px;font-weight:700;font-size:15px}
 .wa{background:#25d366;color:#04210f}.cp{background:var(--line);color:var(--ink)}.ex{color:var(--mute);font-size:14px;margin-top:12px}.ex a{color:var(--g);cursor:pointer}
+.steps{list-style:none;padding:0;margin:14px 0 0;color:var(--mute);font-size:14px}.steps li{margin:4px 0}.steps .done:before{content:"✓ ";color:var(--g)}.steps .started:before{content:"… "}.steps .bad:before{content:"× ";color:var(--y)}
+.warn{border:1px solid var(--r);background:#2a1414;border-radius:12px;padding:12px 14px;margin-top:14px}.warn b{color:var(--r)}.warn ul{margin:6px 0 0}
+.mem{color:var(--mute);font-size:14px;margin-top:8px}.fb{display:flex;gap:8px;align-items:center;margin-top:12px;color:var(--mute);font-size:14px}.fb button{width:auto;padding:6px 12px;background:var(--line);color:var(--ink);font-weight:600}
 </style></head><body><main>
 <div class="lang"><button id="en" class="on" type="button">English</button><button id="pcm" type="button">Pidgin</button></div>
 <h1 id="h">Is this token a scam?</h1><p class="sub" id="sub">Paste the contract address, a DexScreener or pump.fun link, or the whole message you were sent. We check it before your money does.</p>
@@ -25,7 +28,7 @@ ul{padding-left:18px;margin:10px 0 0}li{margin:6px 0}.ok{color:var(--g)}.meta{co
 <button id="go">Check it</button></form>
 <div class="ex">Try: <a data-q="0x1f9840a85d5af5bf1d1762f925bdaddc4201f984">UNI</a> · <a data-q="https://dexscreener.com/solana/DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263">a Solana link</a></div>
 <div id="out"></div>
-<p class="meta" id="foot">Free. No wallet connection, nothing to sign. A clean result is not a guarantee: only use money you can afford to lose.</p>
+<p class="meta" id="foot">Free. No wallet connection, nothing to sign. We never store recovery phrases, keys, phone numbers or emails you paste. A clean result is not a guarantee: only use money you can afford to lose.</p>
 </main><script>
 const $=s=>document.querySelector(s),esc=s=>String(s??'').replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 let lang='en';const L={en:{h:'Is this token a scam?',go:'Check it',busy:'Checking...',labels:{LOW_RISK:'Low risk',CAUTION:'Be careful',HIGH_RISK:'High risk',UNKNOWN:'Not found'},src:'Checked with',wa:'Share on WhatsApp',cp:'Copy result',done:'Copied'},
@@ -33,21 +36,32 @@ pcm:{h:'This token na scam?',go:'Check am',busy:'We dey check...',labels:{LOW_RI
 function setLang(l){lang=l;$('#en').className=l==='en'?'on':'';$('#pcm').className=l==='pcm'?'on':'';$('#h').textContent=L[l].h;$('#go').textContent=L[l].go}
 $('#en').onclick=()=>setLang('en');$('#pcm').onclick=()=>setLang('pcm');
 document.querySelectorAll('.ex a').forEach(a=>a.onclick=()=>{$('#q').value=a.dataset.q;$('#chain').value='auto';$('#f').requestSubmit()});
-async function run(){const b=$('#go');b.disabled=true;b.textContent=L[lang].busy;$('#out').innerHTML='';
-const p=new URLSearchParams({q:$('#q').value.trim(),chain:$('#chain').value,lang,amount:$('#amt').value||50000});
-try{const r=await fetch('/api/check?'+p);const j=await r.json();
-if(!r.ok){$('#out').innerHTML=`<div class="card">${esc(j.detail||'Something went wrong')}</div>`;return}
-history.replaceState(null,'','?'+new URLSearchParams({q:j.address,chain:j.chain,lang}));
-const items=j.findings.map(f=>`<li class="${f.points?'':'ok'}">${esc(f.plain)}</li>`).join('');
-const tok=[j.name,j.symbol&&('$'+j.symbol)].filter(Boolean).join(' ');
-$('#out').innerHTML=`<div class="card"><div class="v ${j.verdict}">${L[lang].labels[j.verdict]} · ${j.score}/100</div>
-<div class="tok">${esc(tok)} · ${esc(j.chain)} · ${esc(j.address)}</div><p>${esc(j.summary)}</p>
+const T2={en:{steps:'Checking',flags:'Red flags in the message itself',removed:'We removed private info from what you pasted before saving anything:',mem:(m)=>`Last checked ${m.last_checked_hours_ago}h ago: ${m.last_verdict.replace('_',' ').toLowerCase()} (${m.last_score}/100)`+(m.liquidity_change_pct!=null?`, pool ${m.liquidity_change_pct>0?'+':''}${m.liquidity_change_pct}% since`:''),fbq:'Was this right?',thx:'Thanks, this helps us improve.'},
+pcm:{steps:'We dey check',flags:'Wahala wey dey inside the message',removed:'We comot your private info before we save anything:',mem:(m)=>`We check am ${m.last_checked_hours_ago}h ago: ${m.last_verdict.replace('_',' ').toLowerCase()} (${m.last_score}/100)`+(m.liquidity_change_pct!=null?`, pool ${m.liquidity_change_pct>0?'+':''}${m.liquidity_change_pct}% since then`:''),fbq:'We talk am correct?',thx:'Thank you, e go help us.'}};
+function render(j){const items=j.findings.map(f=>`<li class="${f.points?'':'ok'}">${esc(f.plain)}</li>`).join('');
+const tok=[j.name,j.symbol&&('$'+j.symbol)].filter(Boolean).join(' ');const share=j.share_text.replace(/https?:\S+$/,location.href);
+const flags=j.message_flags&&j.message_flags.length?`<div class="warn"><b>${T2[lang].flags}</b><ul>${j.message_flags.map(f=>`<li>${esc(f.plain)}</li>`).join('')}</ul>${j.removed&&j.removed.length?`<div class="mem">${T2[lang].removed} ${esc(j.removed.join(', ').replace('_',' '))}</div>`:''}</div>`:'';
+$('#out').innerHTML=`${flags}<div class="card"><div class="v ${j.verdict}">${L[lang].labels[j.verdict]} · ${j.score}/100</div>
+<div class="tok">${esc(tok)} · ${esc(j.chain)} · ${esc(j.address)}</div>${j.memory?`<div class="mem">${esc(T2[lang].mem(j.memory))}</div>`:''}<p>${esc(j.summary)}</p>
 ${j.money?`<div class="money">${esc(j.money.note)}</div>`:''}<ul>${items}</ul>
 <div class="meta">${L[lang].src}: ${esc(j.sources.join(', ')||'-')} · ${j.latency_ms} ms</div>
-<div class="share"><a class="wa" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(j.share_text.replace(/https?:\S+$/,location.href))}">${L[lang].wa}</a>
-<button class="cp" type="button" id="cp">${L[lang].cp}</button></div></div>`;
-$('#cp').onclick=()=>{navigator.clipboard.writeText(j.share_text.replace(/https?:\S+$/,location.href));$('#cp').textContent=L[lang].done}}
-catch(e){$('#out').innerHTML='<div class="card">Network problem. Try again.</div>'}finally{b.disabled=false;b.textContent=L[lang].go}}
+<div class="share"><a class="wa" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(share)}">${L[lang].wa}</a>
+<button class="cp" type="button" id="cp">${L[lang].cp}</button></div>
+<div class="fb" id="fb">${T2[lang].fbq} <button type="button" data-v="up">👍</button><button type="button" data-v="down">👎</button></div></div>`;
+$('#cp').onclick=()=>{navigator.clipboard.writeText(share);$('#cp').textContent=L[lang].done};
+document.querySelectorAll('#fb button').forEach(b=>b.onclick=()=>{fetch('/api/feedback',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({trace_id:j.trace_id,vote:b.dataset.v})});$('#fb').textContent=T2[lang].thx})}
+function run(){const b=$('#go');b.disabled=true;b.textContent=L[lang].busy;
+$('#out').innerHTML=`<div class="card"><div class="mem">${T2[lang].steps}...</div><ul class="steps" id="steps"></ul></div>`;
+const q=$('#q').value.trim(),p=new URLSearchParams({q,chain:$('#chain').value,lang,amount:$('#amt').value||50000});
+const seen={},done=()=>{b.disabled=false;b.textContent=L[lang].go};let finished=false;
+const es=new EventSource('/api/stream?'+p);
+es.onmessage=e=>{const ev=JSON.parse(e.data);
+ if(ev.type==='step'){let li=seen[ev.tool];if(!li){li=document.createElement('li');seen[ev.tool]=li;$('#steps').appendChild(li)}
+  li.className=ev.status==='done'?'done':ev.status==='started'?'started':'bad';li.textContent=ev.label+(ev.status!=='done'&&ev.status!=='started'?` (${ev.status})`:'')}
+ else if(ev.type==='report'){finished=true;es.close();const j=ev.report;history.replaceState(null,'','?'+new URLSearchParams({q:j.address,chain:j.chain,lang}));render(j);done()}
+ else if(ev.type==='error'){finished=true;es.close();$('#out').innerHTML=`<div class="card">${esc(ev.detail)}</div>`;done()}};
+es.onerror=()=>{es.close();if(finished)return;finished=true;
+ fetch('/api/check?'+p).then(r=>r.json().then(j=>{if(!r.ok)throw j;render(j)})).catch(j=>{$('#out').innerHTML=`<div class="card">${esc((j&&j.detail)||'Network problem. Try again.')}</div>`}).finally(done)}}
 $('#f').onsubmit=e=>{e.preventDefault();run()};
 const u=new URLSearchParams(location.search);if(u.get('lang')==='pcm')setLang('pcm');if(u.get('q')){$('#q').value=u.get('q');if(u.get('chain'))$('#chain').value=u.get('chain');run()}
 </script></body></html>

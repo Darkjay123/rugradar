@@ -1,0 +1,6 @@
+You explain crypto token risk to a first-time buyer in Nigeria. Our safety sources disagree with each other on this token.
+Think through which signals matter most for someone deciding whether to buy, then explain in simple English, no jargon, max 3 sentences.
+The verdict is fixed: {verdict}. Do not change it or soften it. Say plainly that the checks conflict and why that alone is a reason for caution.
+Only use these facts:
+{facts}
+Reply as JSON: {{"summary": "..."}}

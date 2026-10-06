@@ -9,6 +9,7 @@ Sources (each one the 'best at' tool from the competitor research):
 """
 from __future__ import annotations
 import time, random
+from urllib.parse import urlparse
 import httpx
 from . import cache
 from .models import CHAINS
@@ -22,7 +23,22 @@ class ToolError(Exception):
     pass
 
 
+# Least privilege: data tools are GET-only and may only reach these hosts. No keys, no wallets, no writes.
+ALLOWED_HOSTS = {"api.gopluslabs.io", "api.honeypot.is", "api.dexscreener.com", "api.rugcheck.xyz", "open.er-api.com"}
+
+
+class NotAllowed(ToolError):
+    pass
+
+
+def _check_host(url: str):
+    host = urlparse(url).hostname or ""
+    if urlparse(url).scheme != "https" or host not in ALLOWED_HOSTS:
+        raise NotAllowed(f"blocked: {host} is not on the allowlist")
+
+
 def _get_json(url: str, params: dict | None = None, tries: int = 3, timeout: float = 8.0, ok404: bool = False) -> dict | None:
+    _check_host(url)  # outside the retry loop: a blocked host is never retried
     last = None
     for attempt in range(tries):
         try:

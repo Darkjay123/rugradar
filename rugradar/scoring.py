@@ -188,6 +188,12 @@ def assess(f: TokenFacts, address: str = "", lang: str = "en") -> tuple[Verdict,
     if top_unlocked > 0.5 and (f.chain != "solana" or young):
         add("WHALE_CONCENTRATION", Severity.high, 25, pct=f"{top_unlocked:.0%}")
 
+    # --- Memory: pool money pulled since we last looked = a rug in progress
+    prev = f.previous or {}
+    pl, nl = prev.get("liquidity_usd"), f.liquidity_usd
+    if pl and pl >= 5_000 and f.has_market_data and (nl or 0) < pl * 0.5:
+        add("LIQUIDITY_PULLED", Severity.critical, 60, pct=f"{1 - (nl or 0) / pl:.0%}", h=f"{prev.get('hours_ago', 0):.0f}")
+
     if sim.get("ok") and not sim_hp and (f.sell_tax or 0) < 0.1 and not any(x.code == "HOLDERS_STUCK" for x in out):
         add("TEST_SALE_OK", Severity.info, 0)
 
