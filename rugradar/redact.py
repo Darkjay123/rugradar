@@ -52,9 +52,13 @@ def find_seed(text: str) -> list[tuple[int, int]]:
     return spans
 
 
-def redact(text: str) -> tuple[str, list[str]]:
-    """Returns (safe_text, kinds_removed). Token addresses are kept: they are public and needed."""
+def redact(text: str, keep_bare_hex: bool = False) -> tuple[str, list[str]]:
+    """Returns (safe_text, kinds_removed). Token addresses are kept: they are public and needed.
+    keep_bare_hex: the user picked a network whose token addresses ARE 64 hex (Aptos, Movement, Sui, Starknet)
+    and pasted nothing else, so a lone 0x + 64 hex is an address, not a key."""
     kinds, out = [], text
+    if keep_bare_hex and re.fullmatch(r"\s*0x[0-9a-fA-F]{64}\s*", text):
+        return text.strip(), []
     for a, b in reversed(find_seed(out)):
         out = out[:a] + "[recovery phrase removed]" + out[b:]
         kinds.append("seed_phrase")

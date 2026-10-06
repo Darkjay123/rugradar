@@ -32,6 +32,7 @@ PATTERNS = [  # (regex, chain or None, fallback) checked in order, most specific
     (re.compile(r"\b[A-Za-z0-9]{3,40}\.r[1-9A-HJ-NP-Za-km-z]{24,34}\b"), "xrpl", None),
     (re.compile(r"0x[a-fA-F0-9]{50,64}(?![a-fA-F0-9])"), None, "starknet"),
     (EVM, None, None),
+    (re.compile(r"(?<![a-fA-F0-9x])0x[a-fA-F0-9]{32}(?![a-fA-F0-9])"), "hyperliquid", None),  # HyperCore spot token id
     (re.compile(r"(?<![A-Za-z0-9_\-])(?:EQ|UQ)[A-Za-z0-9_\-]{46}(?![A-Za-z0-9_\-])"), "ton", None),
     (re.compile(r"\b0\.0\.\d{3,10}\b"), "hedera", None),
     (re.compile(r"\b[A-Z0-9]{3,10}-[a-f0-9]{6}\b"), "multiversx", None),

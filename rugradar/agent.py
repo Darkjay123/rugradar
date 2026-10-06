@@ -252,14 +252,17 @@ def check(req: CheckRequest, **kw) -> Report:
     return Report(**rep)
 
 
-def prepare(text: str) -> tuple[str, list[dict], list[str]]:
+HEX64_CHAINS = {"aptos", "movement", "sui", "starknet"}
+
+
+def prepare(text: str, chain: str | None = None) -> tuple[str, list[dict], list[str]]:
     """Strip private data from what the user pasted and flag the pitch itself, before anything else sees it."""
-    clean, removed = redact(text)
+    clean, removed = redact(text, keep_bare_hex=canon(chain) in HEX64_CHAINS if chain else False)
     return clean, message_flags(text), removed
 
 
 def run_text(text: str, chain: str | None = None, lang: str = "en", amount_ngn: int = 50_000):
-    clean, flags, removed = prepare(text)
+    clean, flags, removed = prepare(text, chain)
     flags = message_flags(text, lang)
     trace: list = []
     try:
@@ -267,7 +270,7 @@ def run_text(text: str, chain: str | None = None, lang: str = "en", amount_ngn: 
     except InputError:
         if any("key" in str(r).lower() for r in (removed or [])):
             raise InputError("That looked like a private key, so we deleted it without reading it. Never paste a private key anywhere. "
-                             "If it was a Starknet token address, paste its DexScreener or Starkscan link instead.")
+                             "If it was a token address on Aptos, Sui, Movement or Starknet, pick that network first, or paste its DexScreener link.")
         raise
     yield from run(CheckRequest(chain=c, address=a, lang=lang, amount_ngn=amount_ngn), trace=trace, flags=flags, removed=removed)
 

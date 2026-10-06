@@ -192,3 +192,15 @@ def test_orderbook_zero_liquidity_is_not_thin():
     from rugradar.agent import build_facts
     pairs = [{"liquidity": {"usd": 0}, "pairCreatedAt": 0, "baseToken": {"symbol": "PURR"}}]
     assert build_facts("hyperliquid", {"is_mintable": "0"}, pairs, 1).liquidity_usd is None
+
+
+def test_bare_64_hex_kept_only_when_a_hex64_network_is_picked():
+    from rugradar.agent import prepare
+    a = "0x2a8227993a4e38537a57caefe5e7e9a51327bf6cd732c1f56648f26f68304ebc"
+    assert prepare(a, "aptos")[0] == a
+    assert "key" in " ".join(prepare(a)[2]) or prepare(a)[0] != a  # no network picked: still treated as a key
+
+
+def test_hyperliquid_token_id_parses():
+    from rugradar.parse import extract
+    assert extract("0xc1fb593aeffbeb02f85e0308e9956a90")["chain"] == "hyperliquid"
