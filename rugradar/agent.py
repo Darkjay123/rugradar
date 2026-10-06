@@ -167,6 +167,10 @@ def run(req: CheckRequest, *, sec=None, pairs=None, sim=None, creator=None, rc=N
             trace.append({"tool": name, "error": str(e)[:120], "ts": time.time()})
             errors.append(name)
             return None
+        except Exception as e:  # an unexpected crash in one source degrades the check, it never fails the whole thing
+            trace.append({"tool": name, "error": f"crash: {type(e).__name__}", "ts": time.time()})
+            errors.append(name)
+            return None
         if not offline:
             memory.save_step(trace_id, name, val)
         return val

@@ -311,3 +311,18 @@ def test_official_tether_with_usd_t_symbol_is_the_issuer():
     assert v.value == "LOW_RISK" and "ISSUER_CONTROLLED" in {x.code for x in out}
     v, _, out, _ = scoring.assess(f.model_copy(update={"pair_age_hours": 5, "liquidity_usd": 3_000}), "0x" + "3" * 40)
     assert "IMPERSONATION" in {x.code for x in out}
+
+
+def test_one_crashing_source_does_not_fail_the_check(monkeypatch):
+    from rugradar import agent, solsim, tools
+    from rugradar.models import CheckRequest
+    def boom(*a, **k):
+        raise KeyError("surprise")
+    monkeypatch.setattr(tools, "goplus_security", boom)
+    monkeypatch.setattr(tools, "dexscreener_pairs", lambda *a, **k: [{"liquidity": {"usd": 50_000}, "pairCreatedAt": 0,
+                                                                     "baseToken": {"symbol": "X"}, "pairAddress": "0x" + "9" * 40}])
+    monkeypatch.setattr(tools, "honeypot_sim", lambda *a, **k: None)
+    monkeypatch.setattr(tools, "ngn_per_usd", lambda *a, **k: 1500.0)
+    monkeypatch.setattr(tools, "creator_check", lambda *a, **k: None)
+    rep = agent.check(CheckRequest(chain="base", address="0x" + "4" * 40), use_memory=False)
+    assert rep.verdict.value in ("CAUTION", "HIGH_RISK", "UNKNOWN", "LOW_RISK")
