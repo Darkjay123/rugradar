@@ -51,6 +51,15 @@ def _pct(v) -> float | None:
         return None
 
 
+def _ago(h: float, lang: str = "en") -> str:
+    if h < 1:
+        m = max(1, round(h * 60))
+        return (f"about {m} minutes ago" if lang != "pcm" else f"like {m} minutes ago") if m > 1 else ("just now" if lang != "pcm" else "just now")
+    if h < 48:
+        return f"about {h:.0f} hours ago" if lang != "pcm" else f"like {h:.0f} hours ago"
+    return f"about {h/24:.0f} days ago" if lang != "pcm" else f"like {h/24:.0f} days ago"
+
+
 def _money_ngn(usd: float, rate: float | None) -> str:
     if rate:
         n = usd * rate
@@ -149,6 +158,14 @@ def assess(f: TokenFacts, address: str = "", lang: str = "en") -> tuple[Verdict,
             add("SOL_METADATA_MUTABLE", Severity.info, 5)
         rc = f.rugcheck or {}
         danger = [r["name"] for r in rc.get("risks", []) if r.get("level") == "danger" and r.get("name")]
+        tw = _pct(rc.get("top_wallet_pct"))
+        if tw is not None and tw >= 0.4:
+            add("ONE_WALLET_HOLDS", Severity.critical, 60, pct=f"{tw:.0%}",
+                who=t("WHO_CREATOR", lang) if rc.get("top_wallet_is_creator") else t("WHO_WALLET", lang))
+        elif tw is not None and tw >= 0.2 and young:
+            add("ONE_WALLET_HOLDS_SOME", Severity.high, 25, pct=f"{tw:.0%}")
+        if tw is not None and tw >= 0.2:
+            danger = [d for d in danger if "single holder" not in d.lower()]
         if danger:
             add("RUGCHECK_DANGER", Severity.high, 25, what=", ".join(danger[:3]).lower())
 
@@ -167,7 +184,7 @@ def assess(f: TokenFacts, address: str = "", lang: str = "en") -> tuple[Verdict,
         if f.liquidity_usd is not None and f.liquidity_usd < 10_000:
             add("THIN_LIQUIDITY", Severity.high, 30, money=_money_ngn(f.liquidity_usd, f.ngn_per_usd))
         if f.pair_age_hours is not None and f.pair_age_hours < 72:
-            add("BRAND_NEW", Severity.medium, 15, h=f"{f.pair_age_hours:.0f}")
+            add("BRAND_NEW", Severity.medium, 15, when=_ago(f.pair_age_hours, lang))
     elif f.has_security_data:
         add("NO_MARKET", Severity.high, 25)
 
@@ -192,7 +209,7 @@ def assess(f: TokenFacts, address: str = "", lang: str = "en") -> tuple[Verdict,
     prev = f.previous or {}
     pl, nl = prev.get("liquidity_usd"), f.liquidity_usd
     if pl and pl >= 5_000 and f.has_market_data and (nl or 0) < pl * 0.5:
-        add("LIQUIDITY_PULLED", Severity.critical, 60, pct=f"{1 - (nl or 0) / pl:.0%}", h=f"{prev.get('hours_ago', 0):.0f}")
+        add("LIQUIDITY_PULLED", Severity.critical, 60, pct=f"{1 - (nl or 0) / pl:.0%}", when=_ago(prev.get('hours_ago', 0), lang))
 
     if sim.get("ok") and not sim_hp and (f.sell_tax or 0) < 0.1 and not any(x.code == "HOLDERS_STUCK" for x in out):
         add("TEST_SALE_OK", Severity.info, 0)

@@ -129,13 +129,22 @@ def honeypot_sim(chain: str, address: str, trace: list) -> dict | None:
 
 def rugcheck(address: str, trace: list) -> dict | None:
     def fetch():
-        data = _get_json(f"https://api.rugcheck.xyz/v1/tokens/{address}/report/summary", ok404=True)
+        data = _get_json(f"https://api.rugcheck.xyz/v1/tokens/{address}/report", ok404=True)
         if not data:
             return None
+        known = data.get("knownAccounts") or {}
+        pools = {m.get("pubkey") for m in (data.get("markets") or []) if m.get("pubkey")}
+        pools |= {a for a, k in known.items() if (k or {}).get("type") in ("AMM", "LOCKER")}
+        real = [h for h in (data.get("topHolders") or []) if h.get("owner") not in pools and h.get("address") not in pools]
+        top = max(real, key=lambda h: h.get("pct") or 0, default=None)
+        creator = data.get("creator")
         return {"risks": [{"name": r.get("name"), "level": r.get("level"), "description": r.get("description")}
                           for r in (data.get("risks") or [])],
-                "score_normalised": data.get("score_normalised"), "lp_locked_pct": data.get("lpLockedPct")}
-    return _cached("rugcheck", f"rc:{address}", 600, trace, fetch)
+                "score_normalised": data.get("score_normalised"), "lp_locked_pct": data.get("lpLockedPct"),
+                "top_wallet_pct": round((top.get("pct") or 0) / 100, 4) if top else None,
+                "top_wallet_is_creator": bool(top and creator and top.get("owner") == creator),
+                "holders": data.get("totalHolders")}
+    return _cached("rugcheck2", f"rc2:{address}", 600, trace, fetch)
 
 
 def ngn_per_usd(trace: list) -> float | None:
