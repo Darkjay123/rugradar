@@ -252,3 +252,33 @@ def test_old_transfer_hook_is_only_info():
 def test_kava_tether_is_official():
     from rugradar.scoring import OFFICIAL
     assert OFFICIAL["kava"]["USDT"] == "0x919c1c267bc06a7039e03fcc2ef738525769109c"
+
+
+def _facts(**kw):
+    from rugradar.models import TokenFacts
+    base = dict(chain="optimism", symbol="USDC", has_security_data=True, has_market_data=True, liquidity_usd=50_000_000,
+                pair_age_hours=24 * 400, security={})
+    base.update(kw)
+    return TokenFacts(**base)
+
+
+def test_real_usdc_on_optimism_is_not_a_fake_even_with_a_flagged_deployer():
+    from rugradar import scoring
+    f = _facts(security={"honeypot_with_same_creator": "1", "is_proxy": "1"})
+    v, score, out, _ = scoring.assess(f, "0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85")
+    codes = {x.code for x in out}
+    assert v.value == "LOW_RISK" and "IMPERSONATION" not in codes and "SCAMMER_DEPLOYER" not in codes
+
+
+def test_fake_usdc_on_optimism_is_still_caught():
+    from rugradar import scoring
+    v, _, out, _ = scoring.assess(_facts(liquidity_usd=4_000, pair_age_hours=5), "0x" + "1" * 40)
+    assert v.value == "HIGH_RISK" and "IMPERSONATION" in {x.code for x in out}
+
+
+def test_unlisted_network_old_deep_stablecoin_not_called_fake_but_young_copy_is():
+    from rugradar import scoring
+    old = _facts(chain="mantle", symbol="USDT", liquidity_usd=20_000_000, pair_age_hours=24 * 300)
+    assert "IMPERSONATION" not in {x.code for x in scoring.assess(old, "0x" + "2" * 40)[2]}
+    young = _facts(chain="mantle", symbol="USDT", liquidity_usd=20_000_000, pair_age_hours=10)
+    assert "IMPERSONATION" in {x.code for x in scoring.assess(young, "0x" + "2" * 40)[2]}

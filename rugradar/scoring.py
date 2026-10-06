@@ -24,6 +24,15 @@ OFFICIAL = {
             "WBNB": "0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c", "ETH": "0x2170ed0880ac9a755fd29b2688956bd959f933f8",
             "BTCB": "0x7130d2a12b9bcbfae4f2634d864a1ee1ce3ead9c"},
     "base": {"USDC": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913", "WETH": "0x4200000000000000000000000000000000000006"},
+    # USDC addresses below are from Circle's own contract-address page
+    "optimism": {"USDC": "0x0b2c639c533813f4aa9d7837caf62653d097ff85", "USDT": "0x94b008aa00579c1307b0ef2c499ad98a8ce58e58",
+                 "WETH": "0x4200000000000000000000000000000000000006"},
+    "avalanche": {"USDC": "0xb97ef9ef8734c71904d8002f8b6bc66dd9c48a6e", "USDT": "0x9702230a8ea53601f5cd2dc00fdbc13d4df4a8c7"},
+    "linea": {"USDC": "0x176211869ca2b568f2a7d4ee941e073a821ee1ff"},
+    "unichain": {"USDC": "0x078d782b760474a361dda0af3839290b0ef57ad6"},
+    "worldchain": {"USDC": "0x79a02482a880bce3f13e09da970dc34db4cd24d1"},
+    "sonic": {"USDC": "0x29219dd400f2bf60e5a23d13be72b486d4038894"},
+    "seiv2": {"USDC": "0xe15fc38f6d8c56af07bbcbe3baf5708a2bf42392"},
     "polygon": {"USDC": "0x3c499c542cef5e3811e1192ce70d8cc03d5c3359", "USDT": "0xc2132d05d31c914a87c6611c10748aeb04b58e8f"},
     "arbitrum": {"USDC": "0xaf88d065e77c8cc2239327c5edb3a432268e5831", "USDT": "0xfd086bc7cd5c481dcc9c85ebe478a1c0b69fcbb9"},
     "tron": {"USDT": "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t", "USDC": "TEkxiTehnzSmSe2XqrBj4w32RUN966rdz8"},
@@ -96,7 +105,13 @@ def assess(f: TokenFacts, address: str = "", lang: str = "en") -> tuple[Verdict,
     official = OFFICIAL.get(f.chain, {})
     addr_cmp = address if not address.lower().startswith("0x") else address.lower()
     if sym in COPIED and official.get(sym) != addr_cmp and str(s.get("trust_list")) != "1":
-        add("IMPERSONATION", Severity.critical, 90, sym=sym)
+        # Where we hold the real address, any other one is a fake. Where we don't (a network we have no list for),
+        # only call it a fake when it also looks like one: young or a small pool. A real bridged stablecoin with
+        # millions in its pool for months is not a newcomer trap.
+        known = sym in official
+        looks_fake = young or (f.liquidity_usd is not None and f.liquidity_usd < 1_000_000) or not f.has_market_data
+        if known or looks_fake:
+            add("IMPERSONATION", Severity.critical, 90, sym=sym)
     if str(s.get("trust_list")) == "1" or str(s.get("trusted_token")) == "1":
         add("TRUSTED", Severity.info, 0)
 
@@ -308,7 +323,10 @@ def assess(f: TokenFacts, address: str = "", lang: str = "en") -> tuple[Verdict,
     if issuer:
         powers = {"OWNER_CHANGES_BALANCES", "PAUSABLE", "BLACKLIST", "MINTABLE", "TAX_CHANGEABLE", "UPGRADEABLE",
                   "CODE_REPLACEABLE", "ADMIN_CAN_CHANGE", "LIMITED_SCAN",
-                  "HIDDEN_OWNER", "RECLAIM_OWNERSHIP", "SOL_MINT_AUTHORITY", "SOL_FREEZE", "SOL_BALANCE_MUTABLE"}
+                  "HIDDEN_OWNER", "RECLAIM_OWNERSHIP", "SOL_MINT_AUTHORITY", "SOL_FREEZE", "SOL_BALANCE_MUTABLE",
+                  # GoPlus tags the deployers of big issued tokens (Circle, Tether, bridges) as flagged addresses; on the
+                  # official address or the curated trust list that tag is noise, not a scammer behind the token
+                  "SCAMMER_DEPLOYER", "CREATOR_FLAGGED", "CREATOR_HOLDS_LOTS"}
         had = [x for x in out if x.code in powers]
         out = [x for x in out if x.code not in powers]
         if had:
