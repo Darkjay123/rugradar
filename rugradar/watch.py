@@ -128,10 +128,12 @@ def run(check, send, now: float | None = None) -> dict:
         return {"ran": False, "why": "another sweep ran in the last 10 minutes"}
     _migrate()
     keys = store.safe(store.smembers, IDX, default=[]) or []
-    untils = store.safe(store.mget, [_u(k) for k in keys], default=[]) or [0] * len(keys)
+    untils = store.safe(store.mget, [_u(k) for k in keys], default=None)
+    if untils is None and keys:            # couldn't read expiries: never delete watches on a failed read
+        return {"ran": False, "why": "store read failed"}
     live = []
-    for k, u in zip(keys, untils):
-        if not u or u < now:
+    for k, u in zip(keys, untils or []):
+        if u is not None and u < now:
             _drop(k)
         else:
             live.append(k)
