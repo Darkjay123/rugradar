@@ -1,0 +1,12 @@
+name: bench
+# Forward benchmark: check new tokens at launch, score them 24h later (rugradar/bench.py).
+on:
+  schedule:
+    - cron: "7 * * * *"
+  workflow_dispatch:
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - run: curl -fsS --max-time 90 https://rugradar-dun.vercel.app/api/bench/run

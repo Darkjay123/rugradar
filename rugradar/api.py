@@ -194,6 +194,25 @@ def watch_run():
     return telegram.sweep()
 
 
+@app.get("/api/bench/run")
+def bench_run():
+    """Hourly: check a few brand-new tokens and score the ones checked 24h ago. One run per 50 minutes."""
+    from . import bench
+    from .agent import check_text
+    if store.safe(store.hit, "bench:lock", 3000, default=1) != 1:
+        return {"ran": False, "why": "ran in the last 50 minutes"}
+    resolved = bench.resolve()
+    added = bench.sample(lambda c, a: check_text(a, c, "en", 50_000).model_dump(mode="json"))
+    return {"ran": True, "sampled": added, "resolved": resolved}
+
+
+@app.get("/api/bench")
+def bench_stats():
+    """Public track record: how often RugRadar's launch-time verdict predicted a rug (see rugradar/bench.py)."""
+    from . import bench
+    return bench.stats()
+
+
 @app.get("/api/report/{trace_id}")
 def api_report(trace_id: str):
     return _saved(trace_id)
