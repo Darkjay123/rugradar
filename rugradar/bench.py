@@ -109,14 +109,9 @@ def outcome(rec: dict, pair: dict | None, rugcheck_rugged: bool | None = None) -
 
 def resolve(now: float | None = None, limit: int = 60) -> int:
     now = now or time.time()
-    keys = store.safe(store.items, INDEX, 5000, default=[]) or []
-    due = []
-    for k in keys:
-        r = store.safe(store.get, k)
-        if r and r.get("outcome") is None and now - r["ts"] >= WAIT_S:
-            due.append((k, r))
-        if len(due) >= limit:
-            break
+    keys = list(dict.fromkeys(store.safe(store.items, INDEX, 5000, default=[]) or []))
+    recs = store.safe(store.mget, keys, default=[]) or []
+    due = [(k, r) for k, r in zip(keys, recs) if r and r.get("outcome") is None and now - r["ts"] >= WAIT_S][:limit]
     by_chain = {}
     for k, r in due:
         by_chain.setdefault(r["chain"], []).append((k, r))
@@ -137,8 +132,8 @@ def resolve(now: float | None = None, limit: int = 60) -> int:
 
 
 def stats() -> dict:
-    keys = store.safe(store.items, INDEX, 5000, default=[]) or []
-    recs = [r for r in (store.safe(store.get, k) for k in keys) if r]
+    keys = list(dict.fromkeys(store.safe(store.items, INDEX, 5000, default=[]) or []))
+    recs = [r for r in (store.safe(store.mget, keys, default=[]) or []) if r]
     res = [r for r in recs if r.get("outcome")]
     bad = [r for r in res if r["outcome"] in ("rugged", "dumped")]
     flagged = lambda r: r["verdict"] in ("HIGH_RISK", "CAUTION")

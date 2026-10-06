@@ -45,3 +45,16 @@ def test_dex_error_alone_is_inconclusive():
 def test_no_candidates_returns_none():
     assert solsim.sell_test("x", {"sell_candidates": []}) is None
     assert solsim.sell_test("x", None) is None
+
+
+def test_dex_error_17_is_not_a_frozen_token():
+    amm = "AMM11111111111111111111111111111111111111111"
+    logs = [f"Program {JUP} invoke [1]", f"Program {amm} invoke [2]", "Program log: pool is frozen",
+            f"Program {amm} failed: custom program error: 0x11", f"Program {JUP} failed: custom program error: 0x11"]
+    assert solsim.classify({"InstructionError": [2, {"Custom": 17}]}, logs) == "inconclusive"
+
+
+def test_token_program_insufficient_funds_is_our_setup_not_a_trap():
+    logs = [f"Program {JUP} invoke [1]", f"Program {TK} invoke [2]", "Program log: Error: insufficient funds",
+            f"Program {TK} failed: custom program error: 0x1"]
+    assert solsim.classify({"InstructionError": [2, {"Custom": 1}]}, logs) == "inconclusive"

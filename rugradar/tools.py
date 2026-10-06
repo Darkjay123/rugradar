@@ -12,7 +12,6 @@ import time, random
 from urllib.parse import urlparse
 import httpx
 from . import cache
-from .models import CHAINS
 from .chains import NAMES, GOPLUS, HONEYPOT
 from urllib.parse import quote as _q
 

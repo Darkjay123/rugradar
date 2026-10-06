@@ -6,7 +6,7 @@
   scam addresses   : ScamSniffer (wallet drainers and scam contracts, EVM)
   Sui scam coins   : Suiet guardians coin blocklist
 """
-import gzip, json, re, sys
+import gzip, re, sys
 from pathlib import Path
 import httpx
 

@@ -2,7 +2,6 @@ from __future__ import annotations
 from enum import Enum
 from typing import Optional
 from pydantic import BaseModel, Field, field_validator, model_validator
-import re
 
 from .chains import NAMES, GOPLUS, FAMILY, EVM_ADDR, SOL_ADDR, ANY_ADDR, canon
 

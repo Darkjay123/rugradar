@@ -9,7 +9,7 @@ plus RugRadar-only keys: code_replaceable, admin_can_change, listed_scam, transf
 No keys, no wallets, no writes: read-only public endpoints on an allowlist.
 """
 from __future__ import annotations
-import base64, json, re, time, random
+import json, re, time, random
 from urllib.parse import urlparse, quote
 import httpx
 

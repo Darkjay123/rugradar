@@ -71,6 +71,54 @@ def items(key: str, n: int = 100) -> list:
     return [json.loads(r[0]) for r in rows]
 
 
+def mget(keys: list[str]) -> list:
+    """Many keys in one round trip (Upstash MGET), so reading hundreds of records isn't hundreds of HTTP calls."""
+    if not keys:
+        return []
+    if backend() == "upstash":
+        out = []
+        for i in range(0, len(keys), 200):
+            out += [json.loads(v) if v else None for v in (_redis("MGET", *keys[i:i + 200]) or [])]
+        return out
+    return [get(k) for k in keys]
+
+
+def _sconn(c):
+    c.execute("CREATE TABLE IF NOT EXISTS sets (k TEXT, m TEXT, PRIMARY KEY (k, m))")
+
+
+def sadd(key: str, member: str) -> int:
+    """Add to a set atomically; returns 1 if newly added."""
+    if backend() == "upstash":
+        return int(_redis("SADD", key, member))
+    with _lock, _conn() as c:
+        _sconn(c)
+        return c.execute("INSERT OR IGNORE INTO sets VALUES (?,?)", (key, member)).rowcount
+
+
+def srem(key: str, member: str) -> int:
+    if backend() == "upstash":
+        return int(_redis("SREM", key, member))
+    with _lock, _conn() as c:
+        _sconn(c)
+        return c.execute("DELETE FROM sets WHERE k=? AND m=?", (key, member)).rowcount
+
+
+def smembers(key: str) -> list[str]:
+    if backend() == "upstash":
+        return sorted(_redis("SMEMBERS", key) or [])
+    with _lock, _conn() as c:
+        _sconn(c)
+        return sorted(r[0] for r in c.execute("SELECT m FROM sets WHERE k=?", (key,)).fetchall())
+
+
+def delete(key: str):
+    if backend() == "upstash":
+        return _redis("DEL", key)
+    with _lock, _conn() as c:
+        c.execute("DELETE FROM kv WHERE k=?", (key,))
+
+
 def incr(key: str, by: int = 1) -> int:
     if backend() == "upstash":
         return int(_redis("INCRBY", key, by))

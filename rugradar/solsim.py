@@ -17,8 +17,9 @@ WSOL = "So11111111111111111111111111111111111111112"
 TOKEN_PROGRAMS = {"TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA", "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"}
 SYSTEMISH = TOKEN_PROGRAMS | {"11111111111111111111111111111111", "ComputeBudget111111111111111111111111111111",
                               "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL", "JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4"}
-BLOCK_TEXT = ("account is frozen", "frozen", "non-transferable", "nontransferable", "transfer is disabled",
-              "transfer hook", "transferhook", "custom program error: 0x11")
+# SPL token errors that mean our test was set up wrong, not that the token blocks sales:
+# 0x1 insufficient funds, 0x3 mint mismatch, 0x4 owner mismatch, 0x9 uninitialized account
+SETUP_ERRORS = {"0x1", "0x3", "0x4", "0x9"}
 INCONCLUSIVE_TEXT = ("exceeded cus", "computational budget exceeded", "insufficient lamports", "insufficientfundsforfee",
                      "accountnotfound", "blockhashnotfound", "invalidaccountforfee", "0x1771", "0x1789", "slippage",
                      "insufficient funds for rent")
@@ -64,25 +65,33 @@ def _quote(mint: str, amount: int):
 
 
 def classify(err, logs: list[str]) -> str:
-    """'ok', 'blocked' (the token refused the sale) or 'inconclusive'."""
+    """'ok', 'blocked' (the token refused the sale) or 'inconclusive'.
+
+    Blocked only when the program that failed first is the token program itself, or a program the token program
+    called (a Token-2022 transfer hook). A DEX or router failing, even with a scary message like "frozen" or the same
+    error number, says nothing about the token. Token-program errors that come from our test setup (not enough
+    balance, wrong owner, account not set up) are inconclusive, not a trap.
+    """
     if err is None:
         return "ok"
     text = (str(err) + " " + " ".join(logs or [])).lower()
     if any(k in text for k in INCONCLUSIVE_TEXT):
         return "inconclusive"
-    failed = [m.group(1) for line in logs or [] if (m := re.match(r"Program (\w+) failed", line))]
-    deepest = failed[0] if failed else None
-    if deepest in TOKEN_PROGRAMS or any(k in text for k in BLOCK_TEXT):
-        return "blocked"
-    # a program the token program itself called (a Token-2022 transfer hook) failing is the token refusing
-    stack = []
+    stack, parent_of, deepest = [], {}, None
     for line in logs or []:
         if (m := re.match(r"Program (\w+) invoke \[(\d+)\]", line)):
             stack = stack[: int(m.group(2)) - 1] + [m.group(1)]
-            if deepest and m.group(1) == deepest and len(stack) >= 2 and stack[-2] in TOKEN_PROGRAMS:
-                return "blocked"
+            parent_of.setdefault(m.group(1), stack[-2] if len(stack) >= 2 else None)
+        elif deepest is None and (m := re.match(r"Program (\w+) failed: (.*)", line)):
+            deepest, why = m.group(1), m.group(2).lower()
+    if deepest is None:
+        return "inconclusive"
+    if deepest in TOKEN_PROGRAMS:
+        code = re.search(r"custom program error: (0x[0-9a-f]+)", why)
+        return "inconclusive" if code and code.group(1) in SETUP_ERRORS else "blocked"
+    if parent_of.get(deepest) in TOKEN_PROGRAMS:
+        return "blocked"
     return "inconclusive"
-
 
 def _try(q: dict, owner: str) -> dict:
     s, limited = _jup("POST", "swap", json={"quoteResponse": q, "userPublicKey": owner, "wrapAndUnwrapSol": True,

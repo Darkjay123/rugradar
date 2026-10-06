@@ -2,7 +2,7 @@ import os
 from pathlib import Path
 from collections import defaultdict
 from contextlib import asynccontextmanager
-import json, os, re, statistics, time
+import json, re, statistics, time
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import HTMLResponse, StreamingResponse, Response
 from pydantic import BaseModel, Field, ValidationError
@@ -31,7 +31,10 @@ WEB = Path(__file__).resolve().parent.parent / "web" / "index.html"
 
 def _limit(request: Request, n: int = 20, scope: str = "check"):
     """n requests per minute per IP, counted in the shared store so it holds across serverless instances."""
-    ip = request.headers.get("x-forwarded-for", "").split(",")[0].strip() or (request.client.host if request.client else "?")
+    # Vercel sets x-real-ip / x-vercel-forwarded-for itself; a client-supplied x-forwarded-for is the last resort
+    h = request.headers
+    ip = (h.get("x-vercel-forwarded-for") or h.get("x-real-ip") or h.get("x-forwarded-for", "")).split(",")[0].strip() \
+        or (request.client.host if request.client else "?")
     now = time.time()
     count = store.safe(store.hit, f"rl:{scope}:{ip}:{int(now // 60)}", 90)
     if count is None:  # store unreachable: per-instance fallback
@@ -122,7 +125,8 @@ def api_feedback_export(request: Request, n: int = 500):
 @app.get("/api/stats")
 def api_stats():
     """Published numbers: cost per check (not per token), latency, verdict mix, thumbs, and A/B arms."""
-    runs = store.safe(store.items, "stats:runs", 2000, default=[]) or []
+    runs = [r for r in (store.safe(store.items, "stats:runs", 2000, default=[]) or [])
+            if isinstance(r.get("cost"), (int, float)) and isinstance(r.get("ms"), (int, float)) and r.get("verdict")]
     by_arm = defaultdict(list)
     for r in runs:
         if r.get("arm"):
