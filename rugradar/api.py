@@ -185,6 +185,15 @@ def telegram_setup(request: Request):
     return telegram.setup(SHARE_BASE)
 
 
+@app.get("/api/watch/run")
+def watch_run():
+    """Called every ~15 minutes by a scheduled job. Needs no secret: a shared lock means at most one sweep per
+    10 minutes however often it is hit, and a sweep only re-checks tokens people asked to watch."""
+    if not telegram.TOKEN:
+        return {"ran": False, "why": "telegram is not configured"}
+    return telegram.sweep()
+
+
 @app.get("/api/report/{trace_id}")
 def api_report(trace_id: str):
     return _saved(trace_id)

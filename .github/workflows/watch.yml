@@ -1,0 +1,12 @@
+name: watch-sweep
+# Re-checks tokens people asked RugRadar to watch and sends Telegram alerts when one turns.
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+jobs:
+  sweep:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - run: curl -fsS --max-time 90 https://rugradar-dun.vercel.app/api/watch/run

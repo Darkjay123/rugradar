@@ -130,3 +130,4 @@ class Report(BaseModel):
     timed_out: list[str] = Field(default_factory=list)        # sources that missed the time budget
     coverage: Optional[dict] = None                            # which sources we read and which we couldn't
     checked_at: Optional[str] = None                           # when this snapshot was taken (UTC)
+    market: Optional[dict] = None                              # public numbers watch mode compares: liquidity, holders, creator's share

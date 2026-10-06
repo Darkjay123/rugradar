@@ -71,6 +71,24 @@ def resolve(text: str, chain: str | None, trace: list) -> tuple[str, str]:
     return chain, addr
 
 
+def _pctf(v):
+    try:
+        return round(float(v), 4)
+    except (TypeError, ValueError):
+        return None
+
+
+def _market(facts, sec, rc) -> dict:
+    """Public numbers a later check can compare against (watch alerts): pool money, holders, and how much the
+    creator still holds (EVM: GoPlus creator_percent; Solana: the biggest real wallet when it is the creator)."""
+    sec, rc = sec or {}, rc or {}
+    creator = _pctf(sec.get("creator_percent"))
+    if creator is None and rc.get("top_wallet_is_creator"):
+        creator = _pctf(rc.get("top_wallet_pct"))
+    return {"liquidity_usd": facts.liquidity_usd, "holders": facts.holder_count, "creator_pct": creator,
+            "sell_test_failed": (facts.sim or {}).get("holders_failed") if (facts.sim or {}).get("ok") else None}
+
+
 def build_facts(chain: str, sec: dict | None, pairs: list, now_ms: float, sim=None, creator=None, rc=None, fx=None, previous=None, exit=None) -> TokenFacts:
     sec = sec or {}
     best = max(pairs, key=lambda p: (p.get("liquidity") or {}).get("usd") or 0) if pairs else None
@@ -231,7 +249,8 @@ def run(req: CheckRequest, *, sec=None, pairs=None, sim=None, creator=None, rc=N
                  message_flags=flags or [], removed=removed or [],
                  memory=memory.summarize(prev, verdict.value, score, facts.liquidity_usd),
                  route=explain_step.get("route", "template"), prompt_version=explain_step.get("prompt"), timed_out=timed_out,
-                 coverage=coverage, checked_at=datetime.fromtimestamp(t0, timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"))
+                 coverage=coverage, checked_at=datetime.fromtimestamp(t0, timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+                 market=_market(facts, got["sec"], got["rc"]))
 
     if not offline:
         if use_memory and verdict != Verdict.unknown:

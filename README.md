@@ -11,6 +11,20 @@ Built for first-time crypto buyers in Nigeria and across Africa, who get pulled 
 
 All 64 networks DexScreener lists, from Solana and Ethereum to TON, Sui, Tron, Hyperliquid and Polkadot. Coverage depth per network: [docs/CHAINS.md](docs/CHAINS.md).
 
+## Watch mode (Telegram)
+
+Send the bot `/watch <address or link>`. RugRadar re-checks the token about every 15 minutes for 14 days and messages
+you if the pool money falls by half or more, the creator sells most of their bag, a holder's test sale starts failing,
+or the verdict gets worse. `/watching` lists your tokens, `/unwatch` stops. Only your Telegram chat id and the tokens
+you asked for are kept.
+
+## Solana test sale
+
+For Solana tokens RugRadar builds a real Jupiter sell from up to four wallets that actually hold the token and runs it
+through Solana's own simulator. Nothing is signed or sent. A sale only counts as blocked when the token itself refuses
+it (frozen account, non-transferable, a transfer hook rejecting it); failures that say nothing about the token, like
+a wallet with no SOL for fees or slippage, are skipped.
+
 ## Install it in your AI tool (one line)
 
 Free, read-only, no wallet, no API key. Pick yours:

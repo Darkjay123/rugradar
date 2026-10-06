@@ -7,6 +7,7 @@ from __future__ import annotations
 import hashlib, os, re
 import httpx
 from .agent import check_text, prepare, InputError, SHARE_BASE
+from . import watch
 
 TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "")
 DOT = {"LOW_RISK": "🟢", "CAUTION": "🟠", "HIGH_RISK": "🔴", "UNKNOWN": "⚪"}
@@ -14,6 +15,8 @@ LBL = {"LOW_RISK": "Low risk (not a promise)", "CAUTION": "Be careful", "HIGH_RI
 PCM = re.compile(r"\b(abeg|wetin|dey|una|wahala|oya|sabi|shey|abi|na im|e go)\b", re.I)
 HELP = ("Send me a token address, a DexScreener or pump.fun link, or forward the whole 'gem' message. "
         "I'll tell you if it looks like a scam, what you'd get back in naira, and send a link you can share.\n\n"
+        "Send /watch <address> and I'll keep checking it and message you if the pool money gets pulled, the creator dumps "
+        "or holders can't sell. /watching lists them, /unwatch stops.\n\n"
         "In groups: reply to the message with /check. Add 'pidgin' for Pidgin. I never need your wallet or seed phrase.")
 
 
@@ -56,8 +59,24 @@ def handle(update: dict) -> str | None:
     chat = msg.get("chat", {})
     group = chat.get("type") in ("group", "supergroup")
     cmd = text.split()[0].split("@")[0].lower() if text.startswith("/") else ""
+    arg = text.split(None, 1)[1].strip() if len(text.split(None, 1)) > 1 else ""
     if cmd in ("/start", "/help"):
         out = HELP
+    elif cmd == "/watching":
+        out = watch.listing(chat.get("id"))
+    elif cmd == "/unwatch":
+        out = watch.remove(chat.get("id"), arg or None)
+    elif cmd == "/watch":
+        if not arg:
+            out = "Send /watch followed by the token address or link."
+        else:
+            try:
+                rep = check_text(arg[:2000], "auto", "en", 50_000)
+                j = rep.model_dump(mode="json")
+                out = (format_report(rep) + "\n\n" + watch.add(chat.get("id"), j)) if j["verdict"] != "UNKNOWN" else \
+                    "I couldn't check that token right now, so I can't start watching it. Try again in a minute."
+            except (InputError, ValueError):
+                out = "I couldn't find a token address in that. Send /watch with the contract address or a DexScreener / pump.fun link."
     else:
         if group and cmd != "/check":
             return None  # in groups only answer when asked
@@ -88,5 +107,15 @@ def setup(base: str) -> dict:
                    json={"url": f"{base}/api/telegram", "secret_token": secret(), "allowed_updates": ["message", "channel_post"]})
     httpx.post(f"https://api.telegram.org/bot{TOKEN}/setMyCommands", timeout=10,
                json={"commands": [{"command": "check", "description": "Check a token (reply to a message, or add an address)"},
+                                  {"command": "watch", "description": "Watch a token and get alerts if it turns"},
+                                  {"command": "watching", "description": "Tokens you're watching"},
+                                  {"command": "unwatch", "description": "Stop watching (all, or add an address)"},
                                   {"command": "help", "description": "How to use RugRadar"}]})
     return {"ok": r.json().get("ok", False), "description": r.json().get("description")}
+
+
+def sweep() -> dict:
+    """Re-check watched tokens and message anyone whose token turned."""
+    def check(chain, address):
+        return check_text(address, chain, "en", 50_000).model_dump(mode="json")
+    return watch.run(check, lambda chat, text: _send(chat, text))
