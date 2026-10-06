@@ -9,33 +9,30 @@ from __future__ import annotations
 import json, os, time
 import httpx
 from .models import Finding, Verdict
+from .i18n import t
 
 PRICE_PER_1K = {"gemini-2.0-flash": (0.0001, 0.0004)}  # input, output USD per 1k tokens
 MAX_OUTPUT_TOKENS = 160
 MAX_COST_USD = 0.002
 
-LEAD = {
-    Verdict.high: "High risk. We would not put money into this token.",
-    Verdict.caution: "Be careful. Nothing here proves it's a scam, but there are warning signs.",
-    Verdict.low: "No major red flags found. That is not a guarantee, so only use money you can afford to lose.",
-    Verdict.unknown: "We couldn't check this token.",
-}
+def lead(verdict: Verdict, lang: str = "en") -> str:
+    return t(f"LEAD_{verdict.value}", lang)
 
 
-def template(verdict: Verdict, findings: list[Finding]) -> str:
+def template(verdict: Verdict, findings: list[Finding], lang: str = "en") -> str:
     top = [f.plain for f in findings if f.points > 0][:3]
-    return " ".join([LEAD[verdict], *top]).strip()
+    return " ".join([lead(verdict, lang), *top]).strip()
 
 
 def needs_model(verdict: Verdict, findings: list[Finding]) -> bool:
     return verdict == Verdict.caution and len([f for f in findings if f.points]) >= 3
 
 
-def explain(verdict: Verdict, findings: list[Finding], trace: list) -> tuple[str, str, float]:
+def explain(verdict: Verdict, findings: list[Finding], trace: list, lang: str = "en") -> tuple[str, str, float]:
     key = os.environ.get("GEMINI_API_KEY")
-    if not key or not needs_model(verdict, findings):
+    if not key or lang != "en" or not needs_model(verdict, findings):
         trace.append({"step": "explain", "route": "template"})
-        return template(verdict, findings), "template", 0.0
+        return template(verdict, findings, lang), "template", 0.0
 
     model = "gemini-2.0-flash"
     facts = [{"code": f.code, "severity": f.severity.value, "meaning": f.plain} for f in findings]
@@ -65,8 +62,8 @@ def explain(verdict: Verdict, findings: list[Finding], trace: list) -> tuple[str
             any(w in summary.lower() for w in ("safe to buy", "guaranteed", "no risk"))
         trace.append({"step": "explain", "route": model, "ms": int((time.time() - t0) * 1000), "cost": cost, "rejected": bad})
         if bad:
-            return template(verdict, findings), "template(fallback)", cost
-        return f"{LEAD[verdict]} {summary}", model, cost
+            return template(verdict, findings, lang), "template(fallback)", cost
+        return f"{lead(verdict)} {summary}", model, cost
     except Exception as e:  # degrade gracefully, never fail the check because the model did
         trace.append({"step": "explain", "route": model, "error": type(e).__name__})
-        return template(verdict, findings), "template(fallback)", 0.0
+        return template(verdict, findings, lang), "template(fallback)", 0.0

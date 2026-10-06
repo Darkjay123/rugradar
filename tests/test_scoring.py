@@ -11,15 +11,26 @@ def test_rejects_bad_address():
 
 def test_rejects_unknown_chain():
     with pytest.raises(ValidationError):
-        CheckRequest(chain="solana", address="0x" + "a" * 40)
+        CheckRequest(chain="tron", address="0x" + "a" * 40)
+
+
+def test_solana_address_keeps_case():
+    r = CheckRequest(chain="solana", address="DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263")
+    assert r.address == "DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263"
 
 
 def test_honeypot_is_high_even_with_good_market():
     f = TokenFacts(security={"is_honeypot": "1"}, has_security_data=True, has_market_data=True, liquidity_usd=1e6, pair_age_hours=5000)
-    v, _, findings = assess(f)
+    v, _, findings, _ = assess(f, "0x" + "1" * 40)
     assert v == Verdict.high and findings[0].code == "HONEYPOT"
 
 
 def test_clean_token_is_low():
     f = TokenFacts(security={"is_open_source": "1"}, has_security_data=True, has_market_data=True, liquidity_usd=5e5, pair_age_hours=5000)
-    assert assess(f)[0] == Verdict.low
+    assert assess(f, "0x" + "1" * 40)[0] == Verdict.low
+
+
+def test_pidgin_never_changes_verdict():
+    f = TokenFacts(security={"is_open_source": "0"}, has_security_data=True, has_market_data=True, liquidity_usd=5e3, pair_age_hours=5)
+    en, pcm = assess(f, "0x" + "1" * 40, "en"), assess(f, "0x" + "1" * 40, "pcm")
+    assert en[0] == pcm[0] and en[1] == pcm[1] and en[2][0].plain != pcm[2][0].plain

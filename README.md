@@ -1,14 +1,17 @@
 # RugRadar
 
-**Paste a token address, find out in plain English if it's a trap, before you buy.**
+**Paste a token, a link, or the "gem" message you were sent. Find out in plain English or Pidgin if it's a trap, before you buy.**
 
 Built for first-time crypto buyers in Nigeria and across Africa, who get pulled into Telegram and X "gems" that turn out to be honeypots, tax rugs or owner-controlled tokens. No wallet connection, nothing to sign.
 
 ## How it works (5-minute read)
 
 ```
-request ──► validate (chain + 0x address, pydantic)
-        ──► tools: GoPlus static scan + honeypot.is live buy/sell simulation + DexScreener market data
+paste anything ──► find the token: address, DexScreener/pump.fun/explorer link, or a forwarded message
+               ──► auto-detect the network (EVM chains + Solana)
+               ──► run every source in parallel:
+                     GoPlus contract scan · Honeypot.is test trade + what happened to recent buyers
+                     creator wallet history · RugCheck (Solana) · DexScreener market · USD→NGN
               timeouts · retry with exponential backoff · SQLite TTL cache
         ──► rules engine decides the verdict (deterministic, testable)
         ──► explainer: free template by default; small model only for mixed signals
@@ -26,18 +29,33 @@ request ──► validate (chain + 0x address, pydantic)
 
 **Degrades, doesn't crash.** If one data source is down, the check still returns with what it has and says what's missing.
 
+## What it borrows from each tool, in one check
+
+| Best at | Tool it learns from | RugRadar check |
+|---|---|---|
+| Owner powers, taxes, honeypot code | GoPlus, Token Sniffer, De.Fi | 20+ contract rules |
+| Can you actually sell? | Honeypot.is | live test trade + share of recent buyers who got stuck |
+| Who's behind it | ChainAware | creator's past scam tokens and flagged wallets |
+| Rug setup | DEXTools, De.Fi | unlocked pool money on young tokens, pool depth and age |
+| Solana | RugCheck | mint, freeze, balance and close authorities, RugCheck danger flags |
+| Fake copies | GoPlus trust list | fake USDT/USDC/WETH etc. against official addresses |
+
+Then what none of them do: answers in **English or Pidgin**, the loss in **naira** ("put in ₦50,000, get back about ₦17,500"), a **WhatsApp share** button, and a shareable link that re-runs the check.
+
 ## Evals
 
-`evals/golden.jsonl` holds 17 cases scored on the verdict *and* the path (which findings must or must not fire, what the summary may not say):
+`evals/golden.jsonl` holds 33 cases scored on the verdict *and* the path (which findings must or must not fire, what the summary may not say):
 
 - real recorded tool output for UNI, LINK, CAKE, USDC on Base, and an unverified token, replayed offline so results are reproducible
 - attack patterns: honeypot, 99% sell tax, owner-can-edit-balances, whale concentration, brand-new thin pool, no pool, not found, prompt injection in the token name
 - source disagreement: clean code but a failed test sale, and a 0% advertised tax that really takes 65%
-- false-positive guards: CAKE's by-design minting and USDC's upgradeable proxy must stay LOW_RISK; burned supply must not count as a whale
+- fake USDT vs the real one, serial-scammer creator, phishing-flagged creator, unlocked pool, holders stuck while our own test sale passes, Solana freeze and mint authority, naira maths, Pidgin keeping the same verdict
+- input parsing: pump.fun links, DexScreener pool links, explorer links, a raw "CA: 0x... 1000x" message
+- false-positive guards: CAKE's by-design minting, USDC's upgradeable proxy and BONK's editable metadata must stay LOW_RISK; burned supply must not count as a whale
 
 ```bash
 pip install -r requirements.txt pytest
-pytest -q && python evals/run_evals.py   # 17/17
+pytest -q && python evals/run_evals.py   # 33/33
 ```
 
 CI runs both on every push and **fails the build if the eval score drops**.
@@ -51,7 +69,7 @@ uvicorn rugradar.api:app --reload      # http://localhost:8000
 # optional: GEMINI_API_KEY=... for model-written summaries on mixed-signal tokens
 ```
 
-API: `GET /api/check?chain=bsc&address=0x...` · chains: ethereum, bsc, base, polygon, arbitrum. Rate-limited per IP. Deploys to Vercel as-is (`api/index.py`).
+API: `GET /api/check?q=<address, link or message>&chain=auto&lang=en|pcm&amount=50000` · chains: ethereum, bsc, base, polygon, arbitrum, solana. Rate-limited per IP. Deploys to Vercel as-is (`api/index.py`).
 
 ## Stack
 
