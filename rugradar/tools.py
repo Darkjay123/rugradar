@@ -93,13 +93,28 @@ def creator_check(chain: str, creator: str | None, trace: list) -> dict | None:
 
 
 def dexscreener_pairs(chain: str | None, address: str, trace: list) -> list:
-    """chain=None returns pairs on every supported chain (used for auto-detect)."""
-    def fetch():
+    """chain=None returns pairs on every network (used for auto-detect). DexScreener's all-network lookup caps at 30
+    pools, so a token copied onto a fork (PulseChain carries every Ethereum address) can crowd out the real network:
+    with a network known we ask that network directly."""
+    def fetch_all():
         data = _get_json(f"https://api.dexscreener.com/latest/dex/tokens/{_q(address, safe='')}")
-        pairs = [p for p in ((data or {}).get("pairs") or []) if p.get("chainId") in DEX_CHAIN.values()]
+        return [p for p in ((data or {}).get("pairs") or []) if p.get("chainId") in DEX_CHAIN.values()]
+
+    def fetch_one():
+        data = _get_json(f"https://api.dexscreener.com/token-pairs/v1/{DEX_CHAIN[chain]}/{_q(address, safe='')}")
+        return [p for p in (data if isinstance(data, list) else []) if p.get("chainId") == DEX_CHAIN[chain]]
+
+    if chain is None:
+        pairs = _cached("dexscreener", f"dx:{address}", 120, trace, fetch_all) or []
+        seen = {p.get("chainId") for p in pairs}
+        if "pulsechain" in seen and "ethereum" not in seen and address.lower().startswith("0x"):
+            eth = dexscreener_pairs("ethereum", address, trace)  # the fork's copy shouldn't hide the original
+            pairs = pairs + eth
         return pairs
-    pairs = _cached("dexscreener", f"dx:{address}", 120, trace, fetch) or []
-    return [p for p in pairs if chain is None or p.get("chainId") == DEX_CHAIN[chain]]
+    pairs = _cached("dexscreener", f"dxc:{chain}:{address}", 120, trace, fetch_one) or []
+    if not pairs:
+        pairs = [p for p in (_cached("dexscreener", f"dx:{address}", 120, trace, fetch_all) or []) if p.get("chainId") == DEX_CHAIN[chain]]
+    return pairs
 
 
 def dexscreener_pair_token(chain: str, pair: str, trace: list) -> str | None:

@@ -1,5 +1,7 @@
 """Every finding in plain English and in Nigerian Pidgin. Values are filled in by the rules engine."""
 T = {
+ "ISSUER_CONTROLLED": ("This is the official token. Its issuer can freeze or pause it, which is normal for big stablecoins and not a scam sign.",
+                       "Na the original token be this. The company wey issue am fit freeze or pause am, and na normal thing for big stablecoin, e no be scam sign."),
  "CONTRACT_NOT_SCANNED": ("We can't read token contracts on {chain} yet, so we can't rule out hidden traps like blocked selling or unlimited minting. This check only covers the market.",
                           "We never fit read token contract for {chain}, so we no fit talk say e no get hidden trap like block selling or print more token. Na only the market we check."),
  "NO_SELLS": ("{buys} buys and not one sell in the last 24 hours. When nobody sells, it's often because nobody can.",

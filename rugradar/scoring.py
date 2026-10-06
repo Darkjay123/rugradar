@@ -26,6 +26,7 @@ OFFICIAL = {
     "base": {"USDC": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913", "WETH": "0x4200000000000000000000000000000000000006"},
     "polygon": {"USDC": "0x3c499c542cef5e3811e1192ce70d8cc03d5c3359", "USDT": "0xc2132d05d31c914a87c6611c10748aeb04b58e8f"},
     "arbitrum": {"USDC": "0xaf88d065e77c8cc2239327c5edb3a432268e5831", "USDT": "0xfd086bc7cd5c481dcc9c85ebe478a1c0b69fcbb9"},
+    "tron": {"USDT": "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t", "USDC": "TEkxiTehnzSmSe2XqrBj4w32RUN966rdz8"},
     "solana": {"USDC": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v", "USDT": "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB",
                "SOL": "So11111111111111111111111111111111111111112"},
 }
@@ -85,7 +86,7 @@ def assess(f: TokenFacts, address: str = "", lang: str = "en") -> tuple[Verdict,
     # --- Fake copies of famous tokens (checked first: the most common newcomer trap)
     sym = (f.symbol or "").strip().upper()
     official = OFFICIAL.get(f.chain, {})
-    addr_cmp = address if f.chain == "solana" else address.lower()
+    addr_cmp = address if not address.lower().startswith("0x") else address.lower()
     if sym in COPIED and official.get(sym) != addr_cmp and str(s.get("trust_list")) != "1":
         add("IMPERSONATION", Severity.critical, 90, sym=sym)
     if str(s.get("trust_list")) == "1" or str(s.get("trusted_token")) == "1":
@@ -254,6 +255,17 @@ def assess(f: TokenFacts, address: str = "", lang: str = "en") -> tuple[Verdict,
 
     if sim.get("ok") and not sim_hp and (f.sell_tax or 0) < 0.1 and not any(x.code == "HOLDERS_STUCK" for x in out):
         add("TEST_SALE_OK", Severity.info, 0)
+
+    # Big issued tokens (USDT, USDC...) keep freeze/pause/blacklist/mint powers by design: that's the issuer, not a trap.
+    # Only for the official address or GoPlus's curated trust list; honeypot, tax and copy checks still count.
+    issuer = (sym in official and official.get(sym) == addr_cmp) or str(s.get("trust_list")) == "1"
+    if issuer:
+        powers = {"OWNER_CHANGES_BALANCES", "PAUSABLE", "BLACKLIST", "MINTABLE", "TAX_CHANGEABLE", "UPGRADEABLE",
+                  "HIDDEN_OWNER", "RECLAIM_OWNERSHIP", "SOL_MINT_AUTHORITY", "SOL_FREEZE", "SOL_BALANCE_MUTABLE"}
+        had = [x for x in out if x.code in powers]
+        out = [x for x in out if x.code not in powers]
+        if had:
+            add("ISSUER_CONTROLLED", Severity.info, 0)
 
     score = min(100, sum(x.points for x in out))
     if any(x.severity == Severity.critical for x in out) or score >= 60:

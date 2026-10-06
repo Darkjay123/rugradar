@@ -131,3 +131,27 @@ def test_buys_but_no_sells_flags_on_any_network():
     f = build_facts("sui", None, pairs, now)
     codes = [x.code for x in scoring.assess(f, "0xabc::xyz::XYZ", "en")[2]]
     assert "NO_SELLS" in codes and "PRICE_CRASHED" in codes
+
+
+def test_official_stablecoin_issuer_powers_are_not_a_scam_sign():
+    from rugradar.agent import build_facts
+    from rugradar import scoring
+    from rugradar.models import Verdict
+    now = 1791309000000
+    pairs = [{"pairAddress": "p", "pairCreatedAt": now - 900 * 86_400_000, "liquidity": {"usd": 9_000_000}, "baseToken": {"symbol": "USDT"}}]
+    sec = {"token_symbol": "USDT", "owner_change_balance": "1", "transfer_pausable": "1", "is_blacklisted": "1", "is_open_source": "1"}
+    f = build_facts("tron", sec, pairs, now)
+    v, _, findings, _ = scoring.assess(f, "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t", "en")
+    assert v == Verdict.low and "ISSUER_CONTROLLED" in [x.code for x in findings]
+    # the same powers on a copy are still flagged
+    v2, _, f2, _ = scoring.assess(f, "TXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX", "en")
+    assert v2 == Verdict.high and "IMPERSONATION" in [x.code for x in f2]
+
+
+def test_64_hex_key_still_removed_but_token_links_survive():
+    from rugradar.redact import redact
+    k = "0x" + "ab" * 32
+    assert k not in redact(f"my key {k}")[0]
+    link = "https://dexscreener.com/starknet/0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d"
+    assert link in redact(link)[0]
+    assert ("0x" + "ab" * 32 + "::coin::COIN") in redact("0x" + "ab" * 32 + "::coin::COIN")[0]

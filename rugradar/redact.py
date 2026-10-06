@@ -9,7 +9,9 @@ from pathlib import Path
 
 WORDS = set((Path(__file__).parent / "data" / "bip39_english.txt").read_text().split())
 EVM = re.compile(r"0x[a-fA-F0-9]{40}\b")
-EVM_KEY = re.compile(r"(?<![0-9a-fA-Fx])(?:0x)?[0-9a-fA-F]{64}(?![0-9a-fA-F])")
+# a 64-hex string is treated as a private key and removed, unless it is clearly a token id: inside a link path
+# (dexscreener.com/starknet/0x...) or a Move coin type (0x...::coin::COIN)
+EVM_KEY = re.compile(r"(?<![0-9a-fA-Fx/])(?:0x)?[0-9a-fA-F]{64}(?![0-9a-fA-F])(?!::)")
 SOL_KEY = re.compile(r"\b[1-9A-HJ-NP-Za-km-z]{85,90}\b")
 EMAIL = re.compile(r"\b[\w.+-]+@[\w-]+\.[\w.-]+\b")
 PHONE = re.compile(r"(?<![\w])(?:\+?234|0)[789][01]\d[\s-]?\d{3}[\s-]?\d{4}(?!\d)|(?<![\w])\+\d{1,3}[\s-]?\d{3}[\s-]?\d{3}[\s-]?\d{3,4}(?!\d)")

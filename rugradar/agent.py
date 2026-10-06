@@ -48,11 +48,16 @@ def resolve(text: str, chain: str | None, trace: list) -> tuple[str, str]:
         tok = tools.dexscreener_pair_token(chain, addr, trace)
         addr = tok or addr
     if not chain:  # no network given: use the one where this token actually trades the most
-        pairs = [p for p in tools.dexscreener_pairs(None, addr, trace)
-                 if (p.get("baseToken") or {}).get("address", "").lower() == addr.lower()] or tools.dexscreener_pairs(None, addr, trace)
+        pairs = tools.dexscreener_pairs(None, addr, trace)
         if pairs:
-            best = max(pairs, key=lambda p: (p.get("liquidity") or {}).get("usd") or 0)
-            chain = best["chainId"]
+            # total pool money per network, whether the token is the base or the quote side. Forks that copied
+            # Ethereum's state (PulseChain) carry the same addresses, so a single pool can't decide it.
+            per = {}
+            for p in pairs:
+                per[p["chainId"]] = per.get(p["chainId"], 0) + ((p.get("liquidity") or {}).get("usd") or 0)
+            if "pulsechain" in per and "ethereum" in per:
+                per.pop("pulsechain")  # same address on Ethereum and its fork: the original is what people mean
+            chain = max(per, key=per.get)
         elif got.get("fallback"):
             chain = got["fallback"]
         else:
@@ -255,7 +260,13 @@ def run_text(text: str, chain: str | None = None, lang: str = "en", amount_ngn: 
     clean, flags, removed = prepare(text)
     flags = message_flags(text, lang)
     trace: list = []
-    c, a = resolve(clean, chain, trace)
+    try:
+        c, a = resolve(clean, chain, trace)
+    except InputError:
+        if any("key" in str(r).lower() for r in (removed or [])):
+            raise InputError("That looked like a private key, so we deleted it without reading it. Never paste a private key anywhere. "
+                             "If it was a Starknet token address, paste its DexScreener or Starkscan link instead.")
+        raise
     yield from run(CheckRequest(chain=c, address=a, lang=lang, amount_ngn=amount_ngn), trace=trace, flags=flags, removed=removed)
 
 
