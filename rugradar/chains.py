@@ -56,8 +56,8 @@ def tier(chain: str) -> str:
         return "full"
     if chain in GOPLUS:
         return "contract"
-    from .native import READERS
-    return "contract" if chain in READERS else "market"
+    from .native import READERS, OFFLINE
+    return "contract" if chain in READERS and chain not in OFFLINE else "market"
 
 
 def norm(chain: str, address: str) -> str:

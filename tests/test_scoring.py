@@ -210,6 +210,8 @@ def test_phishing_link_flagged_and_real_sites_not():
     from rugradar.blocklists import _load, phishing_domains
     bad = next(iter(_load("phish_domains")))
     assert phishing_domains(f"claim your airdrop at https://{bad}/claim now") == [bad]
+    assert phishing_domains("claim at https://bloktract.web.app/x") == ["bloktract.web.app"]  # scam on a shared host
+    assert phishing_domains("my site https://johnsportfolio123.web.app") == []  # the host itself stays allowed
     assert phishing_domains("check https://dexscreener.com/solana/abc and uniswap.org") == []
     assert phishing_domains("token.rhealab.near") == []
 
@@ -226,3 +228,22 @@ def test_sell_test_honeypot_feeds_the_verdict():
     f = build_facts("katana", {"_evm_generic": "1", "is_mintable": "0"}, pairs, 400 * 24 * 3600 * 1000, sim=sim)
     codes = {x.code for x in scoring.assess(f, "0x" + "1" * 40)[2]}
     assert "LIMITED_SCAN" not in codes and "TEST_SALE_OK" in codes
+
+
+def test_ton_custom_wallet_and_offline_network_findings():
+    from rugradar.scoring import assess
+    from rugradar.models import TokenFacts
+    f = TokenFacts(chain="ton", has_security_data=True, security={"custom_wallet_code": "1"}, pair_age_hours=500)
+    codes = [x.code for x in assess(f)[2]]
+    assert "TON_CUSTOM_WALLET" in codes
+    f = TokenFacts(chain="stepnetwork", has_security_data=True, security={"network_offline": "1"})
+    assert "NETWORK_OFFLINE" in [x.code for x in assess(f)[2]]
+
+
+def test_old_transfer_hook_is_only_info():
+    from rugradar.scoring import assess
+    from rugradar.models import TokenFacts
+    old = TokenFacts(chain="aptos", has_security_data=True, security={"transfer_hook": "1"}, pair_age_hours=24 * 90)
+    new = TokenFacts(chain="aptos", has_security_data=True, security={"transfer_hook": "1"}, pair_age_hours=24 * 3)
+    sev = lambda f: [x.severity.value for x in assess(f)[2] if x.code == "TRANSFER_HOOK"][0]
+    assert sev(old) == "info" and sev(new) == "medium"

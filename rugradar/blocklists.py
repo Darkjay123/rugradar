@@ -38,10 +38,14 @@ def phishing_domains(text: str) -> list[str]:
     for d in ds:
         parts = d.split(".")
         cands = [".".join(parts[i:]) for i in range(len(parts) - 1)]
-        if any(c in allow for c in cands):
-            continue
-        if any(c in deny for c in cands):
-            hits.append(d)
+        # most specific name decides: a scam site on a shared host (x.web.app) is caught even though
+        # the host itself (web.app) is on the allowlist so its other sites aren't blocked
+        for c in cands:
+            if c in deny:
+                hits.append(d)
+                break
+            if c in allow:
+                break
     return hits
 
 

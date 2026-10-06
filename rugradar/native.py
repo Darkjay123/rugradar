@@ -289,9 +289,27 @@ def ton(address: str) -> dict | None:
                  "w": (h.get("owner") or {}).get("is_wallet"), "scam": (h.get("owner") or {}).get("is_scam")} for h in hs]
         out["holders"] = _holders(rows, j.get("total_supply"), contract=lambda r: not r.get("w"))
         out["_read"].append("top holders")
+        # Every TON holder gets their own jetton-wallet contract, and that contract decides whether a
+        # transfer (a sale) goes through. Honeypot jettons ship a custom wallet that refuses transfers.
+        # tonapi recognises the standard wallet codes by interface; anything else is custom code.
+        wallets = [h.get("address") for h in hs if h.get("address")][:2]
+        seen = []
+        for w in wallets:
+            acc = G(f"https://tonapi.io/v2/accounts/{quote(w, safe='')}", ok404=True) or {}
+            if acc.get("status") == "active":
+                seen.append(set(acc.get("interfaces") or []))
+        if seen:
+            out["_read"].append("holder wallet code")
+            if any(not (i & TON_STD_WALLETS) for i in seen):
+                out["custom_wallet_code"] = "1"
+            elif any("jetton_wallet_governed" in i for i in seen):
+                out["is_blacklisted"] = "1"  # governed wallets: the admin can lock any holder's balance
     except NativeError:
         pass
     return out
+
+
+TON_STD_WALLETS = {"jetton_wallet", "jetton_wallet_v1", "jetton_wallet_v2", "jetton_wallet_governed"}
 
 
 # ----------------------------------------------------------------------------------------------- Sui
@@ -772,7 +790,16 @@ def polkadot(asset_id: str) -> dict | None:
             "paused_now": "1" if info.get("status") == "Frozen" else None, "_read": ["asset roles (issuer, admin, freezer)"]}
 
 
+OFFLINE = {"stepnetwork"}
+
+
+def offline(chain: str, name: str):
+    """A network whose only public node is down: say so instead of pretending we checked."""
+    return lambda a: {"_source": name, "network_offline": "1", "_read": []}
+
+
 READERS = {
+    "stepnetwork": offline("stepnetwork", "Step Network"),
     "ton": ton, "sui": sui, "aptos": lambda a: move("aptos", a), "movement": lambda a: move("movement", a), "near": near,
     "hedera": hedera, "xrpl": xrpl, "cardano": cardano, "algorand": algorand, "starknet": starknet, "icp": icp,
     "hyperliquid": hyperliquid, "multiversx": multiversx, "stacks": stacks, "injective": injective, "polkadot": polkadot,

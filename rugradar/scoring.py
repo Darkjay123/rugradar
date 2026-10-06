@@ -157,7 +157,15 @@ def assess(f: TokenFacts, address: str = "", lang: str = "en") -> tuple[Verdict,
         if _flag(s, "code_replaceable"):
             add("CODE_REPLACEABLE", Severity.high, 25)
         if _flag(s, "transfer_hook"):
-            add("TRANSFER_HOOK", Severity.medium, 15)
+            # a hook on a token that has traded normally for a month is far less likely to be a trap
+            if young:
+                add("TRANSFER_HOOK", Severity.medium, 15)
+            else:
+                add("TRANSFER_HOOK", Severity.info, 5)
+        if _flag(s, "custom_wallet_code"):
+            add("TON_CUSTOM_WALLET", Severity.high, 40)
+        if _flag(s, "network_offline"):
+            add("NETWORK_OFFLINE", Severity.medium, 20, chain=_N.get(f.chain, f.chain))
         if _flag(s, "admin_can_change"):
             add("ADMIN_CAN_CHANGE", Severity.info, 5)
         sold_fine = sim.get("ok") and (sim.get("holders_tested") or 0) >= 2 and not (sim.get("holders_failed") or 0)
