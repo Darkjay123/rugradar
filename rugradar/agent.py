@@ -11,6 +11,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed, TimeoutError as
 from .models import CheckRequest, Report, TokenFacts, Verdict, Money, CHAINS
 from .native import ORDERBOOK
 from .chains import NAMES, GOPLUS, tier, canon
+from . import sim as sim_mod
 from . import tools, scoring, explain as ex, parse, memory, store
 from .redact import redact, message_flags
 from .i18n import t
@@ -20,11 +21,12 @@ SHARE_BASE = os.environ.get("RUGRADAR_URL", "https://rugradar-dun.vercel.app")
 RUN_BUDGET_S = float(os.environ.get("RUGRADAR_RUN_BUDGET_S", "20"))  # whole-check time budget
 SOURCE_NAMES = {"goplus": "GoPlus contract scan", "honeypot_sim": "Honeypot.is test trade", "dexscreener": "DexScreener market data",
                 "creator_wallet": "creator wallet history", "rugcheck": "RugCheck report",
-                "jupiter": "Jupiter live sell quote", "native": "the network's own on-chain data"}
+                "jupiter": "Jupiter live sell quote", "native": "the network's own on-chain data",
+                "sell_test": "RugRadar test sale from real buyers' wallets"}
 STEP_LABELS = {"goplus": "Scanning the contract code", "dexscreener": "Checking the market and pool",
                "honeypot_sim": "Running a test buy and sell", "rugcheck": "Pulling the Solana risk report",
                "fx": "Getting today's naira rate", "creator_wallet": "Checking the creator's wallet history",
-               "jupiter": "Getting a live quote to sell it back"}
+               "jupiter": "Getting a live quote to sell it back", "sell_test": "Testing a sale from real buyers' wallets"}
 
 
 class InputError(ValueError):
@@ -181,6 +183,13 @@ def run(req: CheckRequest, *, sec=None, pairs=None, sim=None, creator=None, rc=N
             yield {"type": "step", "tool": "creator_wallet", "label": STEP_LABELS["creator_wallet"], "status": "started"}
             creator = step("creator_wallet", tools.creator_check, req.chain, got["sec"].get("creator_address"), trace)
             yield {"type": "step", "tool": "creator_wallet", "label": STEP_LABELS["creator_wallet"], "status": "done" if creator else "no data"}
+        if got["sim"] is None and req.chain in sim_mod.RPCS and got["pairs"] and req.address.startswith("0x") \
+                and time.time() - t0 < RUN_BUDGET_S - 4:
+            yield {"type": "step", "tool": "sell_test", "label": STEP_LABELS["sell_test"], "status": "started"}
+            sec0 = got["sec"] or {}
+            got["sim"] = step("sell_test", sim_mod.sell_test, req.chain, req.address, got["pairs"], sec0.get("holders") or [],
+                              {sec0.get("owner_address"), sec0.get("creator_address")}, trace)
+            yield {"type": "step", "tool": "sell_test", "label": STEP_LABELS["sell_test"], "status": "done" if got["sim"] else "no data"}
         if exit is None and req.chain == "solana" and got["fx"] and got["pairs"] and time.time() - t0 < RUN_BUDGET_S:
             yield {"type": "step", "tool": "jupiter", "label": STEP_LABELS["jupiter"], "status": "started"}
             exit = step("jupiter", tools.jupiter_roundtrip, req.address, req.amount_ngn / got["fx"], trace)
@@ -200,7 +209,8 @@ def run(req: CheckRequest, *, sec=None, pairs=None, sim=None, creator=None, rc=N
     used = [SOURCE_NAMES[s["tool"]] for s in trace if s.get("tool") in SOURCE_NAMES and (s.get("found") or s.get("cached") or s.get("resumed")) and "error" not in s]
     if offline:
         used = [n for k, n in SOURCE_NAMES.items() if {"goplus": got["sec"] if req.chain in GOPLUS else None,
-                                                      "native": got["sec"] if req.chain not in GOPLUS else None, "honeypot_sim": got["sim"], "dexscreener": got["pairs"],
+                                                      "native": got["sec"] if req.chain not in GOPLUS else None,
+                                                      "sell_test": got["sim"] if (got["sim"] or {}).get("source") == "rugradar" else None, "honeypot_sim": got["sim"], "dexscreener": got["pairs"],
                                                       "creator_wallet": creator, "rugcheck": got["rc"], "jupiter": exit}[k]]
     tried = list(dict.fromkeys(SOURCE_NAMES[s["tool"]] for s in trace if s.get("tool") in SOURCE_NAMES and not s.get("skipped")))
     coverage = None if offline else {"read": len(set(used)), "missing": [n for n in tried if n not in used]}

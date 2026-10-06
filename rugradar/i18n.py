@@ -1,5 +1,9 @@
 """Every finding in plain English and in Nigerian Pidgin. Values are filled in by the rules engine."""
 T = {
+ "SCAM_WALLET_BEHIND": ("A wallet on public scam lists (ScamSniffer) owns, created or holds a big part of this token.",
+                        "One wallet wey dem don list as scammer (ScamSniffer) get hand for this token: e own am, create am, or hold plenty of am."),
+ "SOME_STUCK": ("We tried a sale from {n} real holders' wallets and {failed} of them couldn't sell. The token may be blocking some wallets.",
+                "We try sell from {n} people wallet wey hold am, and {failed} no fit sell. The token fit dey block some wallets."),
  "CODE_REPLACEABLE": ("Whoever controls this token can swap out its code at any time, so it could start blocking sales or printing tokens tomorrow.",
                       "The person wey control this token fit change im code anytime, so tomorrow e fit start to block selling or print more token."),
  "ADMIN_CAN_CHANGE": ("An admin key can still change this token's rules.", "Admin still fit change the rules of this token."),

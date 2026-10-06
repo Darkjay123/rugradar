@@ -108,6 +108,8 @@ def assess(f: TokenFacts, address: str = "", lang: str = "en") -> tuple[Verdict,
     tested, failed = sim.get("holders_tested") or 0, (sim.get("holders_failed") or 0) + (sim.get("holders_siphoned") or 0)
     if tested >= 10 and failed / tested >= 0.1:
         add("HOLDERS_STUCK", Severity.critical, 70, failed=failed, n=tested)
+    elif sim.get("some_stuck") and not sim_hp:
+        add("SOME_STUCK", Severity.high, 30, failed=failed, n=tested)
     for k, attr in (("sell_tax", "sell_tax"), ("buy_tax", "buy_tax")):
         v = _pct(sim.get(k))
         if v is not None and (getattr(f, attr) is None or v / 100 > getattr(f, attr)):
@@ -158,7 +160,8 @@ def assess(f: TokenFacts, address: str = "", lang: str = "en") -> tuple[Verdict,
             add("TRANSFER_HOOK", Severity.medium, 15)
         if _flag(s, "admin_can_change"):
             add("ADMIN_CAN_CHANGE", Severity.info, 5)
-        if s.get("_evm_generic") and str(s.get("is_open_source", "")) != "1":
+        sold_fine = sim.get("ok") and (sim.get("holders_tested") or 0) >= 2 and not (sim.get("holders_failed") or 0)
+        if s.get("_evm_generic") and str(s.get("is_open_source", "")) != "1" and not sold_fine:
             if str(s.get("is_open_source", "")) != "0":  # CLOSED_SOURCE already says it when the explorer confirmed
                 add("LIMITED_SCAN", Severity.medium, 15, chain=_N.get(f.chain, f.chain))
 
@@ -195,6 +198,12 @@ def assess(f: TokenFacts, address: str = "", lang: str = "en") -> tuple[Verdict,
             danger = [d for d in danger if "single holder" not in d.lower()]
         if danger:
             add("RUGCHECK_DANGER", Severity.high, 25, what=", ".join(danger[:3]).lower())
+
+    # --- Who's behind it: a wallet on ScamSniffer's drainer/scam list owns, created or holds a big share of it
+    from .blocklists import scam_address
+    behind = [s.get("owner_address"), s.get("creator_address")] + [h.get("address") for h in (s.get("holders") or [])[:10]]
+    if any(scam_address(a) for a in behind if isinstance(a, str) and a.startswith("0x")):
+        add("SCAM_WALLET_BEHIND", Severity.critical, 80)
 
     # --- Who's behind it (ChainAware-style behaviour check)
     if _flag(s, "honeypot_with_same_creator") or int(_pct((f.creator or {}).get("number_of_malicious_contracts_created")) or 0) > 0:
@@ -274,7 +283,7 @@ def assess(f: TokenFacts, address: str = "", lang: str = "en") -> tuple[Verdict,
     if pl and pl >= 5_000 and f.has_market_data and (nl or 0) < pl * 0.5:
         add("LIQUIDITY_PULLED", Severity.critical, 60, pct=f"{1 - (nl or 0) / pl:.0%}", when=_ago(prev.get('hours_ago', 0), lang))
 
-    if sim.get("ok") and not sim_hp and (f.sell_tax or 0) < 0.1 and not any(x.code == "HOLDERS_STUCK" for x in out):
+    if sim.get("ok") and not sim_hp and (f.sell_tax or 0) < 0.1 and not any(x.code in ("HOLDERS_STUCK", "SOME_STUCK") for x in out):
         add("TEST_SALE_OK", Severity.info, 0)
 
     # Big issued tokens (USDT, USDC...) keep freeze/pause/blacklist/mint powers by design: that's the issuer, not a trap.

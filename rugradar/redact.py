@@ -84,6 +84,13 @@ def message_flags(text: str, lang: str = "en") -> list[dict]:
     for code, spec in FLAGS.items():
         if spec[0] and re.search(spec[0], low):
             found.append({"code": code, "plain": spec[li]})
+    from .blocklists import phishing_domains
+    bad = phishing_domains(text)
+    if bad:
+        d = ", ".join(bad[:3])
+        found.insert(0, {"code": "PHISHING_LINK", "plain": (
+            f"The link {d} is on public scam-site lists (MetaMask, ScamSniffer, Phantom). Don't open it and never connect your wallet there.",
+            f"Dem don list this link {d} as scam site (MetaMask, ScamSniffer, Phantom). No open am, and no ever connect your wallet there.")[li - 1]})
     return found
 
 

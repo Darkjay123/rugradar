@@ -307,6 +307,10 @@ def sui(coin_type: str) -> dict | None:
     if not md:
         return None
     out = {"_source": "Sui network", "token_name": md.get("name"), "token_symbol": md.get("symbol"), "_read": ["coin metadata"]}
+    from .blocklists import sui_scam_coin
+    if sui_scam_coin(coin_type):
+        out["listed_scam"] = "1"
+        out["_read"].append("Suiet scam-coin list")
     caps = (j.get("cap") or {}).get("nodes") or []
     if caps:
         o = caps[0].get("owner") or {}

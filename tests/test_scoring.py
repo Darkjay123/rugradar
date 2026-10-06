@@ -204,3 +204,25 @@ def test_bare_64_hex_kept_only_when_a_hex64_network_is_picked():
 def test_hyperliquid_token_id_parses():
     from rugradar.parse import extract
     assert extract("0xc1fb593aeffbeb02f85e0308e9956a90")["chain"] == "hyperliquid"
+
+
+def test_phishing_link_flagged_and_real_sites_not():
+    from rugradar.blocklists import _load, phishing_domains
+    bad = next(iter(_load("phish_domains")))
+    assert phishing_domains(f"claim your airdrop at https://{bad}/claim now") == [bad]
+    assert phishing_domains("check https://dexscreener.com/solana/abc and uniswap.org") == []
+    assert phishing_domains("token.rhealab.near") == []
+
+
+def test_sell_test_honeypot_feeds_the_verdict():
+    from rugradar.agent import build_facts
+    from rugradar import scoring
+    pairs = [{"liquidity": {"usd": 80_000}, "pairCreatedAt": 0, "baseToken": {"symbol": "MOON"}}]
+    sim = {"ok": True, "source": "rugradar", "holders_tested": 4, "holders_failed": 4, "is_honeypot": True}
+    f = build_facts("katana", {"_evm_generic": "1", "is_mintable": "0"}, pairs, 1, sim=sim)
+    v, _, out, _ = scoring.assess(f, "0x" + "1" * 40)
+    assert v.value == "HIGH_RISK" and "HONEYPOT" in {x.code for x in out}
+    sim = {"ok": True, "source": "rugradar", "holders_tested": 5, "holders_failed": 0, "sell_tax": 0.0}
+    f = build_facts("katana", {"_evm_generic": "1", "is_mintable": "0"}, pairs, 400 * 24 * 3600 * 1000, sim=sim)
+    codes = {x.code for x in scoring.assess(f, "0x" + "1" * 40)[2]}
+    assert "LIMITED_SCAN" not in codes and "TEST_SALE_OK" in codes
