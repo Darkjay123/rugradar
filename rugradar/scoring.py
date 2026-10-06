@@ -199,9 +199,13 @@ def assess(f: TokenFacts, address: str = "", lang: str = "en") -> tuple[Verdict,
         elif f.chain == "solana" and (f.rugcheck or {}).get("lp_locked_pct") is not None and f.rugcheck["lp_locked_pct"] < 50:
             add("LP_UNLOCKED", Severity.high, 30)
 
-    holders = s.get("holders") or []
+    # pools and bonding curves hold tokens for trading, not to dump: they never count as whales
+    pools = {a.lower() for a in f.pool_addresses}
+    holders = [h for h in (s.get("holders") or []) if (h.get("address") or h.get("account") or "").lower() not in pools]
     top_unlocked = sum(_pct(h.get("percent")) or 0 for h in holders[:10]
                        if not h.get("is_locked") and (h.get("address") or h.get("account") or "").lower() not in DEAD)
+    if f.chain == "solana" and (f.rugcheck or {}).get("top10_pct") is not None:
+        top_unlocked = f.rugcheck["top10_pct"]  # RugCheck is live and already excludes pools; GoPlus can lag a migration
     if top_unlocked > 0.5 and (f.chain != "solana" or young):
         add("WHALE_CONCENTRATION", Severity.high, 25, pct=f"{top_unlocked:.0%}")
 

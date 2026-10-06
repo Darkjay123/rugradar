@@ -61,7 +61,9 @@ def resolve(text: str, chain: str | None, trace: list) -> tuple[str, str]:
 def build_facts(chain: str, sec: dict | None, pairs: list, now_ms: float, sim=None, creator=None, rc=None, fx=None, previous=None, exit=None) -> TokenFacts:
     sec = sec or {}
     best = max(pairs, key=lambda p: (p.get("liquidity") or {}).get("usd") or 0) if pairs else None
-    age = max(0.0, (now_ms - best["pairCreatedAt"]) / 3_600_000) if best and best.get("pairCreatedAt") else None
+    # token age = its OLDEST pool. A pump.fun token that just graduated gets a fresh PumpSwap pool, but it isn't new.
+    born = min((p["pairCreatedAt"] for p in pairs if p.get("pairCreatedAt")), default=None)
+    age = max(0.0, (now_ms - born) / 3_600_000) if born else None
     meta = sec.get("metadata") or {}
     bt = (best or {}).get("baseToken", {})
     hc = str(sec.get("holder_count", ""))
@@ -76,6 +78,7 @@ def build_facts(chain: str, sec: dict | None, pairs: list, now_ms: float, sim=No
         sim=sim, creator=creator, rugcheck=rc, ngn_per_usd=fx, previous=previous,
         pool_tokens=_f(((best or {}).get("liquidity") or {}).get("base")),
         supply=(_f((best or {}).get("fdv")) / _f(best.get("priceUsd"))) if best and _f(best.get("fdv")) and _f(best.get("priceUsd")) else None,
+        pool_addresses=[p["pairAddress"] for p in pairs if p.get("pairAddress")] + list((rc or {}).get("pools") or []),
         exit=exit,
     )
 

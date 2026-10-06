@@ -143,8 +143,10 @@ def rugcheck(address: str, trace: list) -> dict | None:
                 "score_normalised": data.get("score_normalised"), "lp_locked_pct": data.get("lpLockedPct"),
                 "top_wallet_pct": round((top.get("pct") or 0) / 100, 4) if top else None,
                 "top_wallet_is_creator": bool(top and creator and top.get("owner") == creator),
+                "top10_pct": round(sum(h.get("pct") or 0 for h in sorted(real, key=lambda h: -(h.get("pct") or 0))[:10]) / 100, 4) if real else None,
+                "pools": sorted(pools),
                 "holders": data.get("totalHolders")}
-    return _cached("rugcheck2", f"rc2:{address}", 600, trace, fetch)
+    return _cached("rugcheck3", f"rc3:{address}", 600, trace, fetch)
 
 
 def ngn_per_usd(trace: list) -> float | None:

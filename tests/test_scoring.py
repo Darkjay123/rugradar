@@ -59,3 +59,26 @@ def test_whale_exit_estimate_needs_real_pool_numbers():
     v, s, out, _ = assess(f.model_copy(update={"pool_tokens": None}), "x")
     assert not any(f2.code == "WHALE_EXIT" for f2 in out)
     assert not any(f2.code == "WHALE_EXIT" for f2 in assess(f.model_copy(update={"pair_age_hours": 5000}), "x")[2])  # old tokens: exchange wallets, many pools
+
+
+def test_graduated_pumpfun_token_is_not_new_and_pools_are_not_whales():
+    """Alpenglow, 6 Oct 2026: old pump.fun token that just moved to PumpSwap. GoPlus still listed the old
+    bonding curve as a 66% holder, so it read as 'top 10 hold 94%' and 'trading started 3 minutes ago'."""
+    from rugradar.agent import build_facts
+    from rugradar import scoring
+    now = 1791309000000
+    pairs = [{"pairAddress": "DZwSnciSb5Vat6HgyzCPhLszmAtvC9giS1s1CpM6mAUg", "dexId": "pumpswap", "pairCreatedAt": now - 3 * 60_000,
+              "liquidity": {"usd": 11224, "base": 321860120}, "fdv": 20744, "priceUsd": "0.0000207",
+              "baseToken": {"name": "Alpenglow", "symbol": "ALPENGLOW"}},
+             {"pairAddress": "6SbqxApnTaVS73ZnKRULwWRYcdf7RKf6maaJEiyXjszC", "dexId": "pumpfun", "pairCreatedAt": 1747670197000}]
+    sec = {"holder_count": "54", "holders": [{"account": "6SbqxApnTaVS73ZnKRULwWRYcdf7RKf6maaJEiyXjszC", "percent": "0.6653"}] +
+           [{"account": f"W{i}", "percent": "0.03"} for i in range(9)]}
+    f = build_facts("solana", sec, pairs, now)
+    assert f.pair_age_hours > 24 * 365
+    _, _, findings, _ = scoring.assess(f, "DNq98kymaw7GxhvLDTtrpUTBzi3L2KvnSedutZMyVhbm", "en")
+    codes = [x.code for x in findings]
+    assert "BRAND_NEW" not in codes and "WHALE_CONCENTRATION" not in codes, codes
+    # RugCheck's pool-excluded top 10 wins when present
+    f2 = build_facts("solana", sec, pairs[:1], now, rc={"top10_pct": 0.72, "pools": ["6SbqxApnTaVS73ZnKRULwWRYcdf7RKf6maaJEiyXjszC"]})
+    _, _, findings2, _ = scoring.assess(f2, "DNq98kymaw7GxhvLDTtrpUTBzi3L2KvnSedutZMyVhbm", "en")
+    assert "WHALE_CONCENTRATION" in [x.code for x in findings2]

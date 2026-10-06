@@ -85,6 +85,7 @@ class TokenFacts(BaseModel):
     previous: Optional[dict] = None   # last time we checked this token (memory)
     pool_tokens: Optional[float] = None  # tokens sitting in the main pool (DexScreener liquidity.base)
     supply: Optional[float] = None       # fdv / price
+    pool_addresses: list[str] = Field(default_factory=list)  # every trading pool / bonding curve: never counted as a whale
     exit: Optional[dict] = None          # live round-trip quote for the user's amount (Solana, Jupiter)
 
 
