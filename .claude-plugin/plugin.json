@@ -16,5 +16,6 @@
     "rug-pull",
     "web3",
     "mcp"
-  ]
+  ],
+  "license": "MIT"
 }
