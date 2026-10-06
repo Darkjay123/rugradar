@@ -52,9 +52,10 @@ def test_whale_exit_estimate_needs_real_pool_numbers():
     from rugradar.models import TokenFacts
     from rugradar.scoring import assess
     rc = {"top_wallet_pct": 0.3, "risks": []}
-    f = TokenFacts(chain="solana", has_market_data=True, has_security_data=True, liquidity_usd=50_000, pair_age_hours=2000,
+    f = TokenFacts(chain="solana", has_market_data=True, has_security_data=True, liquidity_usd=50_000, pair_age_hours=100,
                    rugcheck=rc, pool_tokens=10_000_000, supply=100_000_000)
     v, s, out, _ = assess(f, "x")
     assert any(f2.code == "WHALE_EXIT" for f2 in out)
     v, s, out, _ = assess(f.model_copy(update={"pool_tokens": None}), "x")
     assert not any(f2.code == "WHALE_EXIT" for f2 in out)
+    assert not any(f2.code == "WHALE_EXIT" for f2 in assess(f.model_copy(update={"pair_age_hours": 5000}), "x")[2])  # old tokens: exchange wallets, many pools
