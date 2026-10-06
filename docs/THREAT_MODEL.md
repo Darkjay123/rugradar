@@ -23,12 +23,13 @@ Token deployers who want a clean verdict; people who want to misuse the server t
 | MCP tool descriptions | Tool poisoning | Descriptions are static in code; tools are read-only; no tool takes a URL or file path. |
 | MCP transport | DNS rebinding | Protection is off on purpose: no cookies, no auth, no state, read-only. Nothing to steal from a rebound browser. Revisit if auth is ever added. |
 | Shared report pages (`/r/<id>`) | XSS through token names; scam names ranking in search; leaking the pasted message | All token text escaped; pages are `noindex`; only public chain facts are saved (message flags, stripped-data list, cost and model route are dropped). Ids are random; pages expire after 30 days. |
+| Telegram bot webhook | Forged updates making the bot spam or burn checks | Webhook rejects any request without the secret header derived from the bot token. Only api.telegram.org is called for replies. In groups the bot answers only /check. |
 | Feedback | Poisoning the eval set | Feedback export needs an admin token. Nothing edits `golden.jsonl` automatically; a person promotes cases. |
 | Abuse / cost | Draining free API quotas | 20 checks per minute per IP, caching per source, model only called on cases that need it. |
 | Dependencies | Breaking changes, supply chain | `mcp` pinned `>=1.9,<2`; CI runs tests and evals before every deploy. |
 
 ## Known gaps (honest)
-- The rate limiter lives in memory per serverless instance, so a determined attacker can spread across instances. Fix: move counters into Upstash.
+- Rate limits now count in Upstash across instances, but they key on IP, so a botnet with many IPs can still spend the free source quotas.
 - Verdicts depend on third-party sources (GoPlus, honeypot.is, RugCheck, DexScreener, Jupiter). If they are wrong together, RugRadar is wrong. Coverage is shown so users can see what was read.
 - A token can turn malicious after a check (upgradeable contracts, liquidity pulled later). Reports show the check time and say to re-check.
 - No signed attestations yet: a screenshot of a report can be faked. The `/r/<id>` link is the source of truth.

@@ -79,6 +79,21 @@ def incr(key: str, by: int = 1) -> int:
     return cur + by
 
 
+def hit(key: str, window_s: int) -> int:
+    """Count one hit in a fixed window shared by every server instance (INCR + EXPIRE)."""
+    if backend() == "upstash":
+        n = int(_redis("INCR", key))
+        if n == 1:
+            _redis("EXPIRE", key, window_s)
+        return n
+    with _lock, _conn() as c:
+        row = c.execute("SELECT v, exp FROM kv WHERE k=?", (key,)).fetchone()
+        n = 1 if not row or (row[1] and row[1] < time.time()) else json.loads(row[0]) + 1
+        exp = time.time() + window_s if n == 1 else row[1]
+        c.execute("REPLACE INTO kv VALUES (?,?,?)", (key, json.dumps(n), exp))
+    return n
+
+
 def safe(fn, *a, default=None, **k):
     """Storage must never break a check: a store outage degrades to 'no memory', not an error."""
     try:

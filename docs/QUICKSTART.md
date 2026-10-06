@@ -39,3 +39,9 @@ python skills/rugradar/scripts/check.py --scan "send 0.1 SOL to receive 1 SOL, g
 python evals/run_evals.py        # the golden cases CI runs before every deploy
 ```
 Live verdicts can change as tokens change; the eval cases replay saved data, so they don't.
+
+## 5. Telegram bot
+Owner setup, once: create a bot with @BotFather, add `TELEGRAM_BOT_TOKEN` in Vercel → Settings → Environment Variables, redeploy, then open `https://rugradar-dun.vercel.app/api/telegram/setup`.
+Users: DM the bot an address, a link or a forwarded gem message. In groups, reply to a message with `/check`. Add "pidgin" for a Pidgin answer.
+
+Shared check links (`/r/<id>`) carry a preview image (`/r/<id>.png`) so the verdict shows in WhatsApp and X before anyone taps.

@@ -35,7 +35,7 @@ def render(r: dict, base: str) -> str:
     return f"""<!doctype html><html lang="{'en' if lang == 'en' else 'pcm'}"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex">
 <title>{e(title)}</title><meta property="og:title" content="{e(title)}"><meta property="og:description" content="{e(top)}">
-<meta property="og:url" content="{e(url)}"><meta property="og:type" content="website"><meta name="twitter:card" content="summary">
+<meta property="og:url" content="{e(url)}"><meta property="og:type" content="website"><meta property="og:image" content="{e(url)}.png"><meta property="og:image:width" content="1200"><meta property="og:image:height" content="630"><meta name="twitter:card" content="summary_large_image"><meta name="twitter:image" content="{e(url)}.png">
 <style>body{{font-family:system-ui,-apple-system,sans-serif;margin:0;background:#f8fafc;color:#0f172a}}main{{max-width:560px;margin:auto;padding:20px 16px 40px}}
 .badge{{background:{COLOR[v]};color:#fff;border-radius:14px;padding:18px}}.badge h1{{margin:0;font-size:26px}}.badge p{{margin:6px 0 0;opacity:.95}}
 ul{{padding-left:20px}}li{{margin:8px 0}}li.critical,li.high{{font-weight:600}}.money{{background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:12px}}

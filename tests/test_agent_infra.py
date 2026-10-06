@@ -168,3 +168,40 @@ def test_report_routes():
     assert c.get("/api/report/feedbeef0001").json()["score"] == 40
     assert c.get("/r/not-a-valid-id!").status_code == 404
     assert c.get("/api/report/000000000000").status_code == 404
+
+
+def test_card_png_and_route_order():
+    from fastapi.testclient import TestClient
+    from rugradar.api import app
+    from rugradar import memory
+    memory.save_report("cafe00000001", {"chain": "solana", "address": "So11111111111111111111111111111111111111112", "verdict": "HIGH_RISK",
+                                         "score": 100, "summary": "s", "lang": "en", "trace_id": "cafe00000001", "name": "X" * 80,
+                                         "findings": [{"code": "A", "severity": "critical", "points": 60, "plain": "One wallet holds most of it. " * 6}],
+                                         "money": {"amount_ngn": 50000, "get_back_ngn": 1200, "note": ""}, "checked_at": "2026-10-06T17:00:00Z"})
+    c = TestClient(app)
+    r = c.get("/r/cafe00000001.png")
+    assert r.status_code == 200 and r.headers["content-type"] == "image/png" and r.content[:4] == b"\x89PNG"
+    assert "og:image" in c.get("/r/cafe00000001").text
+
+
+def test_telegram_handler(monkeypatch):
+    from rugradar import telegram
+    sent = []
+    monkeypatch.setattr(telegram, "_send", lambda *a, **k: sent.append(a))
+    assert "token address" in telegram.handle({"message": {"chat": {"id": 1, "type": "private"}, "message_id": 5, "text": "/start"}})
+    out = telegram.handle({"message": {"chat": {"id": 1, "type": "private"}, "message_id": 6, "text": "send 0.1 SOL to receive 1 SOL guaranteed"}})
+    assert "red flags" in out
+    assert telegram.handle({"message": {"chat": {"id": 2, "type": "group"}, "message_id": 7, "text": "random chat"}}) is None
+    assert len(sent) == 2
+
+
+def test_telegram_webhook_rejects_without_secret():
+    from fastapi.testclient import TestClient
+    from rugradar.api import app
+    assert TestClient(app).post("/api/telegram", json={}).status_code == 403
+
+
+def test_shared_rate_limit_counts():
+    from rugradar import store
+    k = "rl:test:1.2.3.4:999"
+    assert [store.hit(k, 90) for _ in range(3)][-1] >= 3

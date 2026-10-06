@@ -3,13 +3,14 @@ from collections import defaultdict
 from contextlib import asynccontextmanager
 import json, os, re, statistics, time
 from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import HTMLResponse, StreamingResponse
+from fastapi.responses import HTMLResponse, StreamingResponse, Response
 from pydantic import BaseModel, Field, ValidationError
 from .models import Report, Verdict
 from .agent import check_text, run_text, resume, InputError
 from .redact import redact
 from . import store, memory
 from .page import render as render_page
+from . import telegram
 from .agent import SHARE_BASE
 from .mcp_server import mcp
 
@@ -27,13 +28,17 @@ _hits: dict[str, list[float]] = defaultdict(list)
 WEB = Path(__file__).resolve().parent.parent / "web" / "index.html"
 
 
-def _limit(request: Request, n: int = 20):
+def _limit(request: Request, n: int = 20, scope: str = "check"):
+    """n requests per minute per IP, counted in the shared store so it holds across serverless instances."""
     ip = request.headers.get("x-forwarded-for", "").split(",")[0].strip() or (request.client.host if request.client else "?")
     now = time.time()
-    _hits[ip] = [t for t in _hits[ip] if now - t < 60]
-    if len(_hits[ip]) >= n:
+    count = store.safe(store.hit, f"rl:{scope}:{ip}:{int(now // 60)}", 90)
+    if count is None:  # store unreachable: per-instance fallback
+        _hits[ip] = [t for t in _hits[ip] if now - t < 60]
+        _hits[ip].append(now)
+        count = len(_hits[ip])
+    if count > n:
         raise HTTPException(429, "Too many checks. Try again in a minute.")
-    _hits[ip].append(now)
 
 
 def _bad(e):
@@ -74,7 +79,7 @@ def api_stream(request: Request, q: str = "", chain: str = "auto", lang: str = "
 
 @app.post("/api/resume/{trace_id}", response_model=Report)
 def api_resume(request: Request, trace_id: str):
-    _limit(request, 10)
+    _limit(request, 10, "resume")
     try:
         return resume(trace_id[:32])
     except InputError as e:
@@ -91,7 +96,7 @@ class Feedback(BaseModel):
 @app.post("/api/feedback")
 def api_feedback(request: Request, fb: Feedback):
     """Every thumbs-down is stored with the exact inputs of that run, ready to become an eval case."""
-    _limit(request, 30)
+    _limit(request, 30, "feedback")
     run = memory.get_run(fb.trace_id)
     if not run:
         raise HTTPException(404, "Unknown check id.")
@@ -145,6 +150,12 @@ def _saved(trace_id: str) -> dict:
     return rep
 
 
+@app.get("/r/{trace_id}.png")
+def report_card(trace_id: str):
+    from .card import png
+    return Response(png(_saved(trace_id)), media_type="image/png", headers={"Cache-Control": "public, max-age=86400"})
+
+
 @app.get("/r/{trace_id}", response_class=HTMLResponse)
 def report_page(trace_id: str):
     """What a shared link opens: the saved check, with a preview card for WhatsApp and X."""
@@ -153,6 +164,24 @@ def report_page(trace_id: str):
     except HTTPException:
         return HTMLResponse(f'<!doctype html><meta name="viewport" content="width=device-width,initial-scale=1"><body style="font-family:system-ui;padding:24px">'
                             f'<h2>This check has expired or never existed.</h2><p><a href="{SHARE_BASE}/">Check a token now</a></p>', status_code=404)
+
+
+@app.post("/api/telegram")
+async def telegram_webhook(request: Request):
+    if not telegram.TOKEN or request.headers.get("x-telegram-bot-api-secret-token") != telegram.secret():
+        raise HTTPException(403, "forbidden")
+    try:
+        telegram.handle(await request.json())
+    except Exception:
+        pass  # always 200 so Telegram doesn't retry a bad update forever
+    return {"ok": True}
+
+
+@app.get("/api/telegram/setup")
+def telegram_setup(request: Request):
+    """Idempotent: points the bot's webhook at this deployment. Harmless if anyone calls it."""
+    _limit(request, 3, "tgsetup")
+    return telegram.setup(SHARE_BASE)
 
 
 @app.get("/api/report/{trace_id}")
