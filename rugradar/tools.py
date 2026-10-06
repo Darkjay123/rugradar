@@ -13,9 +13,11 @@ from urllib.parse import urlparse
 import httpx
 from . import cache
 from .models import CHAINS
+from .chains import NAMES, GOPLUS, HONEYPOT
+from urllib.parse import quote as _q
 
-DEX_CHAIN = {"ethereum": "ethereum", "bsc": "bsc", "base": "base", "polygon": "polygon", "arbitrum": "arbitrum", "solana": "solana"}
-HP_CHAINS = {"ethereum": "1", "bsc": "56", "base": "8453"}
+DEX_CHAIN = {k: k for k in NAMES}  # our chain keys are DexScreener chainIds
+HP_CHAINS = HONEYPOT
 UA = {"User-Agent": "rugradar/0.2 (+https://github.com/Darkjay123/rugradar)"}
 
 
@@ -68,22 +70,24 @@ def _cached(name: str, key: str, ttl: int, trace: list, fn):
 
 
 def goplus_security(chain: str, address: str, trace: list) -> dict | None:
+    if chain not in GOPLUS:
+        return None  # market-data-only network: nothing to call
     def fetch():
         if chain == "solana":
             data = _get_json("https://api.gopluslabs.io/api/v1/solana/token_security", {"contract_addresses": address})
         else:
-            data = _get_json(f"https://api.gopluslabs.io/api/v1/token_security/{CHAINS[chain]}", {"contract_addresses": address})
+            data = _get_json(f"https://api.gopluslabs.io/api/v1/token_security/{GOPLUS[chain]}", {"contract_addresses": address})
         res = (data or {}).get("result") or {}
         return res.get(address) or res.get(address.lower()) or None
     return _cached("goplus", f"gp:{chain}:{address}", 900, trace, fetch)
 
 
 def creator_check(chain: str, creator: str | None, trace: list) -> dict | None:
-    if not creator or chain == "solana" or not creator.startswith("0x"):
+    if not creator or chain == "solana" or chain not in GOPLUS or not GOPLUS[chain].isdigit() or not creator.startswith("0x"):
         return None
 
     def fetch():
-        data = _get_json(f"https://api.gopluslabs.io/api/v1/address_security/{creator}", {"chain_id": CHAINS[chain]})
+        data = _get_json(f"https://api.gopluslabs.io/api/v1/address_security/{creator}", {"chain_id": GOPLUS[chain]})
         return (data or {}).get("result") or None
     return _cached("creator_wallet", f"cr:{chain}:{creator.lower()}", 3600, trace, fetch)
 
@@ -91,7 +95,7 @@ def creator_check(chain: str, creator: str | None, trace: list) -> dict | None:
 def dexscreener_pairs(chain: str | None, address: str, trace: list) -> list:
     """chain=None returns pairs on every supported chain (used for auto-detect)."""
     def fetch():
-        data = _get_json(f"https://api.dexscreener.com/latest/dex/tokens/{address}")
+        data = _get_json(f"https://api.dexscreener.com/latest/dex/tokens/{_q(address, safe='')}")
         pairs = [p for p in ((data or {}).get("pairs") or []) if p.get("chainId") in DEX_CHAIN.values()]
         return pairs
     pairs = _cached("dexscreener", f"dx:{address}", 120, trace, fetch) or []
@@ -101,7 +105,7 @@ def dexscreener_pairs(chain: str | None, address: str, trace: list) -> list:
 def dexscreener_pair_token(chain: str, pair: str, trace: list) -> str | None:
     """A DexScreener link points at a pool; resolve it to the token being traded."""
     def fetch():
-        data = _get_json(f"https://api.dexscreener.com/latest/dex/pairs/{DEX_CHAIN[chain]}/{pair}")
+        data = _get_json(f"https://api.dexscreener.com/latest/dex/pairs/{DEX_CHAIN[chain]}/{_q(pair, safe='')}")
         ps = (data or {}).get("pairs") or ([data["pair"]] if (data or {}).get("pair") else [])
         return {"token": ps[0]["baseToken"]["address"]} if ps else None
     out = _cached("dexscreener_pair", f"dxp:{chain}:{pair}", 3600, trace, fetch)

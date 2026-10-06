@@ -4,10 +4,10 @@ from typing import Optional
 from pydantic import BaseModel, Field, field_validator, model_validator
 import re
 
-# chain -> GoPlus chain id ("solana" uses GoPlus's separate Solana endpoint)
-CHAINS = {"ethereum": "1", "bsc": "56", "base": "8453", "polygon": "137", "arbitrum": "42161", "solana": "solana"}
-EVM_ADDR = re.compile(r"^0x[a-fA-F0-9]{40}$")
-SOL_ADDR = re.compile(r"^[1-9A-HJ-NP-Za-km-z]{32,44}$")
+from .chains import NAMES, GOPLUS, FAMILY, EVM_ADDR, SOL_ADDR, ANY_ADDR, canon
+
+# every supported network (64, all of DexScreener's) -> GoPlus chain id or None (market-data-only networks)
+CHAINS = {k: GOPLUS.get(k) for k in NAMES}
 
 
 class CheckRequest(BaseModel):
@@ -19,7 +19,7 @@ class CheckRequest(BaseModel):
     @field_validator("chain")
     @classmethod
     def known_chain(cls, v: str) -> str:
-        v = v.lower().strip()
+        v = canon(v) or ""
         if v not in CHAINS:
             raise ValueError(f"chain must be one of {sorted(CHAINS)}")
         return v
@@ -37,10 +37,14 @@ class CheckRequest(BaseModel):
             if not SOL_ADDR.match(a):
                 raise ValueError("that doesn't look like a Solana token address")
             self.address = a  # base58 is case-sensitive
-        else:
+        elif FAMILY.get(self.chain) == "evm":
             if not EVM_ADDR.match(a):
                 raise ValueError("address must be a 0x-prefixed 40-hex-character contract address")
             self.address = a.lower()
+        else:  # TON, Sui, Tron, NEAR, XRPL, Hedera...: each has its own format; keep case, allow only safe characters
+            if not ANY_ADDR.match(a) or ".." in a:
+                raise ValueError("that doesn't look like a token address")
+            self.address = a.lower() if EVM_ADDR.match(a) else a
         return self
 
 
@@ -85,6 +89,9 @@ class TokenFacts(BaseModel):
     previous: Optional[dict] = None   # last time we checked this token (memory)
     pool_tokens: Optional[float] = None  # tokens sitting in the main pool (DexScreener liquidity.base)
     supply: Optional[float] = None       # fdv / price
+    txns_h24: Optional[dict] = None       # {'buys': n, 'sells': n} on the main pool
+    price_change_h24: Optional[float] = None
+    contract_scannable: bool = True     # False on market-data-only networks
     pool_addresses: list[str] = Field(default_factory=list)  # every trading pool / bonding curve: never counted as a whale
     exit: Optional[dict] = None          # live round-trip quote for the user's amount (Solana, Jupiter)
 
@@ -97,6 +104,8 @@ class Money(BaseModel):
 
 class Report(BaseModel):
     chain: str
+    chain_name: Optional[str] = None
+    coverage_tier: Optional[str] = None  # full | contract | market (see chains.py)
     address: str
     name: Optional[str] = None
     symbol: Optional[str] = None

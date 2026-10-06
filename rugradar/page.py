@@ -41,7 +41,7 @@ def render(r: dict, base: str) -> str:
 ul{{padding-left:20px}}li{{margin:8px 0}}li.critical,li.high{{font-weight:600}}.money{{background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:12px}}
 .note,.meta{{color:#475569;font-size:14px}}a.btn{{display:block;text-align:center;text-decoration:none;padding:13px;border-radius:10px;font-weight:700;margin-top:10px}}
 .a{{background:#0f172a;color:#fff}}.b{{border:2px solid #0f172a;color:#0f172a}}code{{word-break:break-all;font-size:12px}}</style></head>
-<body><main><div class="badge"><h1>{e(label)} · {r['score']}/100</h1><p>{e(tok)} on {e(r['chain'])}</p></div>
+<body><main><div class="badge"><h1>{e(label)} · {r['score']}/100</h1><p>{e(tok)} on {e(r.get('chain_name') or r['chain'])}</p></div>
 <p>{e(r.get('summary', ''))}</p>{money}<h3>{t['why']}</h3><ul>{finds}</ul>{low}
 <p class="meta">{t['checked']}: {e(when)}. {t['stale']}</p><p class="meta">{t['src']}: {src}</p><p class="meta"><code>{e(r['address'])}</code></p>
 <a class="btn a" href="{again}">{t['again']}</a><a class="btn b" href="{base}/">{t['own']}</a></main></body></html>"""

@@ -11,7 +11,7 @@ def test_rejects_bad_address():
 
 def test_rejects_unknown_chain():
     with pytest.raises(ValidationError):
-        CheckRequest(chain="tron", address="0x" + "a" * 40)
+        CheckRequest(chain="notachain", address="0x" + "a" * 40)
 
 
 def test_solana_address_keeps_case():
@@ -88,3 +88,46 @@ def test_rugcheck_read_is_credited_as_a_source():
     from rugradar import tools
     import inspect
     assert '_cached("rugcheck",' in inspect.getsource(tools.rugcheck)
+
+
+def test_all_64_networks_are_supported():
+    from rugradar.chains import NAMES, tier
+    assert len(NAMES) == 64
+    for c in ("ton", "sui", "tron", "near", "hedera", "xrpl", "cardano", "polkadot", "stepnetwork", "hyperliquid"):
+        assert c in NAMES
+    assert tier("solana") == "full" and tier("arbitrum") == "contract" and tier("ton") == "market"
+
+
+def test_extracts_tokens_on_non_evm_networks():
+    from rugradar.parse import extract
+    assert extract("EQAmbbXQG6ECkRX2YmJwi8AzubLS9Sp-V6EUUNhNVEdWc2i-")["chain"] == "ton"
+    assert extract("0x2::sui::SUI")["fallback"] == "sui"
+    assert extract("TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t")["fallback"] == "tron"
+    sk = extract("0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d")
+    assert sk["fallback"] == "starknet" and len(sk["address"]) == 66  # never cut down to a fake 40-hex EVM address
+    assert extract("0.0.456858")["chain"] == "hedera"
+    assert extract("https://dexscreener.com/hyperevm/0x5555555555555555555555555555555555555555")["chain"] == "hyperevm"
+    assert extract("DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263")["chain"] == "solana"
+
+
+def test_market_only_network_never_reads_low_risk():
+    from rugradar.agent import build_facts
+    from rugradar import scoring
+    from rugradar.models import Verdict
+    now = 1791309000000
+    pairs = [{"pairAddress": "EQpool", "pairCreatedAt": now - 400 * 86_400_000, "liquidity": {"usd": 2_000_000},
+              "txns": {"h24": {"buys": 900, "sells": 850}}, "priceChange": {"h24": 1.2}, "baseToken": {"symbol": "XYZ"}}]
+    f = build_facts("ton", None, pairs, now)
+    v, score, findings, _ = scoring.assess(f, "EQAmbbXQG6ECkRX2YmJwi8AzubLS9Sp-V6EUUNhNVEdWc2i-", "en")
+    assert v == Verdict.caution and "CONTRACT_NOT_SCANNED" in [x.code for x in findings]
+
+
+def test_buys_but_no_sells_flags_on_any_network():
+    from rugradar.agent import build_facts
+    from rugradar import scoring
+    now = 1791309000000
+    pairs = [{"pairAddress": "p", "pairCreatedAt": now - 5 * 3_600_000, "liquidity": {"usd": 40_000},
+              "txns": {"h24": {"buys": 120, "sells": 0}}, "priceChange": {"h24": -85}, "baseToken": {"symbol": "XYZ"}}]
+    f = build_facts("sui", None, pairs, now)
+    codes = [x.code for x in scoring.assess(f, "0xabc::xyz::XYZ", "en")[2]]
+    assert "NO_SELLS" in codes and "PRICE_CRASHED" in codes

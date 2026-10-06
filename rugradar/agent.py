@@ -9,6 +9,7 @@ import json, os, time, uuid
 from datetime import datetime, timezone
 from concurrent.futures import ThreadPoolExecutor, as_completed, TimeoutError as FutTimeout
 from .models import CheckRequest, Report, TokenFacts, Verdict, Money, CHAINS
+from .chains import NAMES, GOPLUS, tier, canon
 from . import tools, scoring, explain as ex, parse, memory, store
 from .redact import redact, message_flags
 from .i18n import t
@@ -41,20 +42,24 @@ def resolve(text: str, chain: str | None, trace: list) -> tuple[str, str]:
     got = parse.extract(text)
     if not got["address"]:
         raise InputError("Couldn't find a token address or link in that. Paste the contract address, a DexScreener or pump.fun link, or the message you were sent.")
-    chain = (chain or "").lower() if chain and chain.lower() != "auto" else got["chain"]
+    chain = canon(chain) if chain and chain.lower() != "auto" else got["chain"]
     addr = got["address"]
     if got["is_pair"] and chain:
         tok = tools.dexscreener_pair_token(chain, addr, trace)
         addr = tok or addr
-    if not chain:  # EVM address with no chain: pick the chain where it actually trades the most
-        pairs = tools.dexscreener_pairs(None, addr, trace)
-        if not pairs:
-            raise InputError("We couldn't tell which network this token is on. Pick the chain and try again.")
-        best = max(pairs, key=lambda p: (p.get("liquidity") or {}).get("usd") or 0)
-        chain = {"ethereum": "ethereum", "bsc": "bsc", "base": "base", "polygon": "polygon", "arbitrum": "arbitrum", "solana": "solana"}[best["chainId"]]
+    if not chain:  # no network given: use the one where this token actually trades the most
+        pairs = [p for p in tools.dexscreener_pairs(None, addr, trace)
+                 if (p.get("baseToken") or {}).get("address", "").lower() == addr.lower()] or tools.dexscreener_pairs(None, addr, trace)
+        if pairs:
+            best = max(pairs, key=lambda p: (p.get("liquidity") or {}).get("usd") or 0)
+            chain = best["chainId"]
+        elif got.get("fallback"):
+            chain = got["fallback"]
+        else:
+            raise InputError("We couldn't tell which network this token is on. Pick the network and try again.")
         trace.append({"step": "auto_chain", "chain": chain, "ts": time.time()})
     if chain not in CHAINS:
-        raise InputError(f"We don't support that network yet. Try one of: {', '.join(CHAINS)}.")
+        raise InputError(f"We don't support that network yet. We check {len(CHAINS)} networks, including Solana, Ethereum, BNB Chain, Base, TON, Sui and Tron.")
     return chain, addr
 
 
@@ -78,6 +83,9 @@ def build_facts(chain: str, sec: dict | None, pairs: list, now_ms: float, sim=No
         sim=sim, creator=creator, rugcheck=rc, ngn_per_usd=fx, previous=previous,
         pool_tokens=_f(((best or {}).get("liquidity") or {}).get("base")),
         supply=(_f((best or {}).get("fdv")) / _f(best.get("priceUsd"))) if best and _f(best.get("fdv")) and _f(best.get("priceUsd")) else None,
+        txns_h24=((best or {}).get("txns") or {}).get("h24"),
+        price_change_h24=_f(((best or {}).get("priceChange") or {}).get("h24")),
+        contract_scannable=chain in GOPLUS,
         pool_addresses=[p["pairAddress"] for p in pairs if p.get("pairAddress")] + list((rc or {}).get("pools") or []),
         exit=exit,
     )
@@ -105,7 +113,7 @@ def money_line(verdict: Verdict, f: TokenFacts, findings, amount: int, lang: str
 
 
 def _slim_pairs(pairs):
-    keep = ("chainId", "liquidity", "pairCreatedAt", "baseToken", "pairAddress", "dexId")
+    keep = ("chainId", "liquidity", "pairCreatedAt", "baseToken", "pairAddress", "dexId", "txns", "priceChange", "fdv", "priceUsd")
     top = sorted(pairs or [], key=lambda p: -((p.get("liquidity") or {}).get("usd") or 0))[:5]
     return [{k: p.get(k) for k in keep} for p in top]
 
@@ -195,7 +203,7 @@ def run(req: CheckRequest, *, sec=None, pairs=None, sim=None, creator=None, rc=N
     share = (f"RugRadar check: {label} ({score}/100). {top} See the full check: {share_url}" if share_url else
              f"RugRadar check: {label} ({score}/100). {top} Check any token before you buy: {SHARE_BASE}").replace("  ", " ")
     explain_step = next((s for s in reversed(trace) if s.get("step") == "explain"), {})
-    rep = Report(chain=req.chain, address=req.address, name=(facts.name or "")[:40] or None, symbol=(facts.symbol or "")[:15] or None,
+    rep = Report(chain=req.chain, chain_name=NAMES.get(req.chain), coverage_tier=tier(req.chain), address=req.address, name=(facts.name or "")[:40] or None, symbol=(facts.symbol or "")[:15] or None,
                  verdict=verdict, score=score, findings=findings, summary=summary, money=money,
                  sources=list(dict.fromkeys(used)), lang=req.lang, share_text=share, share_url=share_url, explained_by=by, trace_id=trace_id,
                  cost_usd=round(cost, 6), latency_ms=int((time.time() - t0) * 1000),

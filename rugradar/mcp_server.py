@@ -7,6 +7,7 @@ from __future__ import annotations
 from mcp.server.fastmcp import FastMCP
 from mcp.server.transport_security import TransportSecuritySettings
 from .agent import check_text, InputError, prepare
+from .chains import norm
 from . import memory
 from .i18n import T
 
@@ -18,7 +19,8 @@ mcp = FastMCP("rugradar", stateless_http=True, json_response=True, streamable_ht
 @mcp.tool()
 def check_token(text: str, chain: str = "auto", lang: str = "en", amount_ngn: int = 50_000) -> dict:
     """Check if a crypto token is a scam before buying. `text` can be a contract address, a DexScreener or
-    pump.fun link, or a whole forwarded "gem" message. Returns a rule-based verdict (LOW_RISK, CAUTION,
+    pump.fun link, or a whole forwarded "gem" message, on any of 64 networks (chain "auto" detects it; or pass a
+    DexScreener chain id like "ton", "sui", "tron", "hyperevm"). Returns a rule-based verdict (LOW_RISK, CAUTION,
     HIGH_RISK, UNKNOWN), a 0-100 risk score, plain-language findings (lang "en" or "pcm" for Nigerian Pidgin),
     what you'd get back in naira, and red flags in the message itself."""
     try:
@@ -38,7 +40,7 @@ def scan_message(text: str, lang: str = "en") -> dict:
 @mcp.tool()
 def token_history(chain: str, address: str) -> dict:
     """What RugRadar saw the last time this token was checked (verdict, score, pool size, how long ago)."""
-    return memory.last(chain.lower(), address if chain.lower() == "solana" else address.lower()) or {"seen": False}
+    return memory.last(chain.lower(), norm(chain.lower(), address)) or {"seen": False}
 
 
 @mcp.tool()

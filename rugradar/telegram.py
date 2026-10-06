@@ -33,7 +33,7 @@ def _send(chat_id, text, reply_to=None):
 def format_report(r) -> str:
     j = r.model_dump(mode="json") if hasattr(r, "model_dump") else r
     tok = " ".join(x for x in [j.get("name") or "", f"${j['symbol']}" if j.get("symbol") else ""] if x) or "This token"
-    lines = [f"{DOT[j['verdict']]} {LBL[j['verdict']]}: {j['score']}/100", f"{tok} on {j['chain']}", ""]
+    lines = [f"{DOT[j['verdict']]} {LBL[j['verdict']]}: {j['score']}/100", f"{tok} on {j.get('chain_name') or j['chain']}", ""]
     for f in j.get("message_flags", [])[:3]:
         lines.append(f"⚠️ {f['plain']}")
     for f in [f for f in j.get("findings", []) if f.get("points")][:3]:

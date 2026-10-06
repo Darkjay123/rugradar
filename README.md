@@ -7,6 +7,10 @@
 Built for first-time crypto buyers in Nigeria and across Africa, who get pulled into Telegram and X "gems" that turn out to be honeypots, tax rugs or owner-controlled tokens. No wallet connection, nothing to sign.
 
 
+## Networks
+
+All 64 networks DexScreener lists, from Solana and Ethereum to TON, Sui, Tron, Hyperliquid and Polkadot. Coverage depth per network: [docs/CHAINS.md](docs/CHAINS.md).
+
 ## Use it from your own tools
 
 - **Quickstart** (browser, HTTP, MCP in Claude Code / Cursor, Agent Skill): [docs/QUICKSTART.md](docs/QUICKSTART.md)

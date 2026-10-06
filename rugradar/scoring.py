@@ -77,6 +77,11 @@ def assess(f: TokenFacts, address: str = "", lang: str = "en") -> tuple[Verdict,
     if not f.has_security_data and not f.has_market_data:
         return Verdict.unknown, 0, [Finding(code="NO_DATA", severity=Severity.info, points=0, plain=t("NO_DATA", lang))], f
 
+    # --- Networks where no contract scanner exists: say so, and never let the result read 'Low risk'
+    if f.has_market_data and not f.has_security_data and not f.rugcheck and not f.contract_scannable:
+        from .chains import NAMES
+        add("CONTRACT_NOT_SCANNED", Severity.medium, 25, chain=NAMES.get(f.chain, f.chain))
+
     # --- Fake copies of famous tokens (checked first: the most common newcomer trap)
     sym = (f.symbol or "").strip().upper()
     official = OFFICIAL.get(f.chain, {})
@@ -232,6 +237,14 @@ def assess(f: TokenFacts, address: str = "", lang: str = "en") -> tuple[Verdict,
             add("THIN_EXIT", Severity.high, 20, a=f"{ex.get('ngn', 0):,}", pct=f"{loss:.0%}")
         elif loss >= 0.05:
             add("THIN_EXIT", Severity.medium, 10, a=f"{ex.get('ngn', 0):,}", pct=f"{loss:.0%}")
+
+    # --- Works on every network: what real traders are doing on the main pool right now
+    tx = f.txns_h24 or {}
+    buys, sells = int(tx.get("buys") or 0), int(tx.get("sells") or 0)
+    if buys >= 25 and sells == 0 and not any(x.code == "HONEYPOT" for x in out):
+        add("NO_SELLS", Severity.high, 40, buys=f"{buys:,}")
+    if f.price_change_h24 is not None and f.price_change_h24 <= -80:
+        add("PRICE_CRASHED", Severity.high, 25, pct=f"{-f.price_change_h24:.0f}%")
 
     # --- Memory: pool money pulled since we last looked = a rug in progress
     prev = f.previous or {}

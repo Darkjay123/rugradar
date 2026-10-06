@@ -1,5 +1,11 @@
 """Every finding in plain English and in Nigerian Pidgin. Values are filled in by the rules engine."""
 T = {
+ "CONTRACT_NOT_SCANNED": ("We can't read token contracts on {chain} yet, so we can't rule out hidden traps like blocked selling or unlimited minting. This check only covers the market.",
+                          "We never fit read token contract for {chain}, so we no fit talk say e no get hidden trap like block selling or print more token. Na only the market we check."),
+ "NO_SELLS": ("{buys} buys and not one sell in the last 24 hours. When nobody sells, it's often because nobody can.",
+              "{buys} people buy am for the last 24 hours and nobody sell. When nobody dey sell, e fit be say nobody fit sell."),
+ "PRICE_CRASHED": ("The price fell {pct} in the last 24 hours.",
+                   "The price don fall {pct} for the last 24 hours."),
  "LIQUIDITY_PULLED": ("{pct} of the pool money has been pulled out since we last checked this token {when}. That is how a rug pull looks while it's happening.",
                       "Dem don comot {pct} of the pool money since we check this token {when}. Na so rug pull dey look when e dey happen."),
  "NO_DATA": ("We couldn't find this token on this chain. Double-check the chain and address before you send money.",
