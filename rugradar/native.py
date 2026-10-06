@@ -22,7 +22,7 @@ class NativeError(Exception):
 
 
 HOSTS = {
-    "tonapi.io", "graphql.mainnet.sui.io", "api.mainnet.aptoslabs.com", "indexer.mainnet.movementnetwork.xyz",
+    "tonapi.io", "icrc-api.internetcomputer.org", "graphql.mainnet.sui.io", "api.mainnet.aptoslabs.com", "indexer.mainnet.movementnetwork.xyz",
     "mainnet.movementnetwork.xyz", "free.rpc.fastnear.com", "rpc.mainnet.near.org", "api.nearblocks.io",
     "mainnet-public.mirrornode.hedera.com", "xrplcluster.com", "s1.ripple.com", "s2.ripple.com", "api.koios.rest",
     "mainnet-idx.algonode.cloud", "starknet.drpc.org", "starknet-rpc.publicnode.com", "api.zan.top",
@@ -348,7 +348,46 @@ def sui(coin_type: str) -> dict | None:
         out["_read"].append("deny list")
     else:
         out["is_blacklisted"] = "0"
+    try:
+        out.update(_sui_holders(coin_type, md.get("supply")))
+    except NativeError:
+        pass
     return out
+
+
+def _sui_holders(coin_type: str, supply, pages: int = 4) -> dict:
+    """Sui has no top-holder index on its public node, so we add up the coin objects themselves.
+    For a young token (the risky kind) that is every holder; for a big one it is a sample, so any
+    concentration we report is a floor, never an overstatement. Pools hold coins inside shared objects,
+    so only wallet-owned coins count here."""
+    if not supply:
+        return {}
+    bal, cur, done = {}, None, False
+    for _ in range(pages):
+        after = f',after:"{cur}"' if cur else ""
+        q = ('{objects(filter:{type:"0x2::coin::Coin<%s>"},first:50%s){pageInfo{hasNextPage endCursor}'
+             'nodes{owner{__typename ... on AddressOwner{address{address}}} asMoveObject{contents{json}}}}}') % (coin_type, after)
+        o = ((P(SUI_GQL, {"query": q}) or {}).get("data") or {}).get("objects") or {}
+        for n in o.get("nodes") or []:
+            own = n.get("owner") or {}
+            if own.get("__typename") != "AddressOwner":
+                continue
+            a = (own.get("address") or {}).get("address")
+            try:
+                b = int((((n.get("asMoveObject") or {}).get("contents") or {}).get("json") or {}).get("balance") or 0)
+            except (TypeError, ValueError):
+                continue
+            bal[a] = bal.get(a, 0) + b
+        pi = o.get("pageInfo") or {}
+        if not pi.get("hasNextPage"):
+            done = True
+            break
+        cur = pi.get("endCursor")
+    rows = [{"address": a, "amount": b} for a, b in bal.items()]
+    h = _holders(rows, supply)
+    if not h or (not done and float(h[0]["percent"]) < 0.05):
+        return {}  # a thin sample of a big token proves nothing either way: don't show it as a holder list
+    return {"holders": h, "_read": ["holder balances" if done else "holder balances (sample)"]}
 
 
 # ----------------------------------------------------------------------------------------------- Aptos + Movement
@@ -650,7 +689,90 @@ def starknet(address: str) -> dict | None:
            "transfer_pausable": _yn(has("pause")), "is_blacklisted": _yn(has("blacklist", "blocklist", "freeze")),
            "slippage_modifiable": _yn(has("set_fee", "set_tax", "set_buy_fee", "set_sell_fee", "set_max_tx")),
            "owner_address": "unknown" if has("mint") else ""}
+    try:
+        h = _stark_holders(address)
+        if h:
+            out["holders"] = h
+            out["_read"].append("biggest recent holders")
+    except NativeError:
+        pass
     return out
+
+
+SN_TRANSFER = "0x99cd8bde557814842a3121e8ddfd433a539b8c9f14bf31ebf108d12e6196e9"
+SN_BAL = ("0x35a73cd311a05d46deda634c5ee045db92f811b4e74bca4437fcb5302b7af33",   # balance_of
+          "0x2e4263afad30923c891518314c3c95dbe830a16874e8abc5777a9a20b54c76e")   # balanceOf
+SN_SUPPLY = ("0x1557182e4359a1f0c6301278e8f5b35a776ab58d39892581e357578fb287836",  # total_supply
+             "0x80aa9fdbfaf9615e4afc7f5f722e265daca5ccc655360fa5ccacf9c267936d")  # totalSupply
+SN_EXECUTE = "__execute__"
+
+
+def _sn(method, params):
+    last = None
+    for u in STARK:
+        try:
+            j = P(u, {"jsonrpc": "2.0", "id": 1, "method": method, "params": params})
+            if "result" in j:
+                return j["result"]
+            last = j.get("error")
+        except NativeError as e:
+            last = e
+    raise NativeError(f"starknet {method}: {last}")
+
+
+def _sn_call(token, sels, calldata):
+    for sel in sels:
+        try:
+            r = _sn("starknet_call", [{"contract_address": token, "entry_point_selector": sel, "calldata": calldata}, "latest"])
+            if r:
+                return int(r[0], 16) + (int(r[1], 16) << 128 if len(r) > 1 else 0)
+        except NativeError:
+            continue
+    return None
+
+
+def _stark_holders(token: str, blocks: int = 20000, pages: int = 2, top: int = 16):
+    """No public Starknet holder index answers us, so: who received this token lately (Transfer events),
+    then ask the token for each one's balance. Concentration from this is a floor, never inflated.
+    Contracts (pools, bridges) are told apart from wallets by whether they can sign transactions."""
+    supply = _sn_call(token, SN_SUPPLY, [])
+    if not supply:
+        return []
+    head = _sn("starknet_blockNumber", [])
+    seen, cont = {}, None
+    for _ in range(pages):
+        f = {"from_block": {"block_number": max(0, head - blocks)}, "to_block": "latest", "address": token,
+             "keys": [[SN_TRANSFER]], "chunk_size": 200}
+        if cont:
+            f["continuation_token"] = cont
+        r = _sn("starknet_getEvents", [f])
+        for e in r.get("events") or []:
+            k, d = e.get("keys") or [], e.get("data") or []
+            to = k[2] if len(k) >= 3 else (d[1] if len(d) >= 4 else None)  # Cairo 1 keys from/to; Cairo 0 puts them in data
+            if to and int(to, 16):
+                seen[to] = seen.get(to, 0) + 1
+        cont = r.get("continuation_token")
+        if not cont:
+            break
+    from concurrent.futures import ThreadPoolExecutor
+    cands = sorted(seen, key=lambda a: -seen[a])[:top]
+    with ThreadPoolExecutor(8) as ex:
+        bals = list(ex.map(lambda a: _sn_call(token, SN_BAL, [a]), cands))
+    rows = [{"address": a, "amount": b} for a, b in zip(cands, bals) if b]
+    hs = _holders(rows, supply)
+
+    def kind(h):  # only the biggest decide a finding; wallets can sign (__execute__), pools/bridges can't
+        try:
+            cls = _sn("starknet_getClassAt", ["latest", h["address"]])
+            abi = cls.get("abi")
+            abi = json.loads(abi) if isinstance(abi, str) else (abi or [])
+            names = {x.get("name") for x in _walk(abi) if isinstance(x, dict)}
+            h["is_contract"] = "0" if SN_EXECUTE in names else "1"
+        except NativeError:
+            h["is_contract"] = "1"  # unknown: never accuse an unread address of being a whale wallet
+    with ThreadPoolExecutor(5) as ex:
+        list(ex.map(kind, hs[:5]))
+    return [h for h in hs[:5]] + [dict(h, is_contract="1") for h in hs[5:]]
 
 
 # ----------------------------------------------------------------------------------------------- ICP
@@ -664,8 +786,24 @@ def icp(canister: str) -> dict | None:
     if not j:
         return None
     ctrl = [c for c in (j.get("controllers") or []) if c not in ICP_BLACKHOLE]
-    return {"_source": "Internet Computer", "code_replaceable": _yn(bool(ctrl)), "owner_address": ", ".join(ctrl[:2]),
-            "_read": ["who controls the token canister"]}
+    out = {"_source": "Internet Computer", "code_replaceable": _yn(bool(ctrl)), "owner_address": ", ".join(ctrl[:2]),
+           "_read": ["who controls the token canister"]}
+    try:
+        led = G(f"https://icrc-api.internetcomputer.org/api/v2/ledgers/{canister}", ok404=True) or {}
+        md = led.get("icrc1_metadata") or {}
+        if md:
+            out["token_name"], out["token_symbol"] = md.get("icrc1_name"), md.get("icrc1_symbol")
+            if led.get("unique_owners_count"):
+                out["holder_count"] = str(led["unique_owners_count"])
+            acc = (G(f"https://icrc-api.internetcomputer.org/api/v2/ledgers/{canister}/accounts",
+                     sort_by="-balance", limit=12) or {}).get("data") or []
+            rows = [{"address": a.get("owner"), "amount": a.get("balance")} for a in acc]
+            # canister principals end in -cai: DEX pools, vaults, the ledger's own accounts, not people
+            out["holders"] = _holders(rows, md.get("icrc1_total_supply"), contract=lambda r: str(r.get("address", "")).endswith("-cai"))
+            out["_read"].append("top holders")
+    except NativeError:
+        pass
+    return out
 
 
 # ----------------------------------------------------------------------------------------------- Hyperliquid (HyperCore spot)
