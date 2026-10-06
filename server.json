@@ -2,7 +2,7 @@
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.Darkjay123/rugradar",
   "title": "RugRadar",
-  "description": "Check a crypto token, link or 'gem' message for scams before buying. Rule-based verdicts on 64 networks.",
+  "description": "Is this crypto token a scam? Rule-based checks on 64 networks, read-only, no wallet or API key.",
   "repository": {
     "url": "https://github.com/Darkjay123/rugradar",
     "source": "github"
