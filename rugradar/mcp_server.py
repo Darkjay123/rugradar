@@ -5,11 +5,14 @@ Remote:  https://rugradar-dun.vercel.app/mcp      (streamable HTTP, stateless)
 """
 from __future__ import annotations
 from mcp.server.fastmcp import FastMCP
+from mcp.server.transport_security import TransportSecuritySettings
 from .agent import check_text, InputError, prepare
 from . import memory
 from .i18n import T
 
-mcp = FastMCP("rugradar", stateless_http=True, json_response=True, streamable_http_path="/")
+# Public, read-only, no cookies or auth: DNS-rebinding protection guards nothing here and would block the Vercel host.
+mcp = FastMCP("rugradar", stateless_http=True, json_response=True, streamable_http_path="/",
+              transport_security=TransportSecuritySettings(enable_dns_rebinding_protection=False))
 
 
 @mcp.tool()
