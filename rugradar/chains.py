@@ -2,7 +2,7 @@
 
   full       contract scan + a second independent check (Solana: RugCheck + Jupiter sell quote;
              Ethereum/BNB/Base: Honeypot.is live test trade)
-  contract   GoPlus contract scan + market data
+  contract   contract / token-power scan (GoPlus, or the network's own data via native.py) + market data
   market     market data only (DexScreener: pools, liquidity, age, buys vs sells, price).
              The contract can't be read on these networks, so a check there can never come back
              'Low risk': at best 'Be careful', with the reason stated.
@@ -54,7 +54,10 @@ def canon(chain: str | None) -> str | None:
 def tier(chain: str) -> str:
     if chain == "solana" or chain in HONEYPOT:
         return "full"
-    return "contract" if chain in GOPLUS else "market"
+    if chain in GOPLUS:
+        return "contract"
+    from .native import READERS
+    return "contract" if chain in READERS else "market"
 
 
 def norm(chain: str, address: str) -> str:

@@ -27,6 +27,12 @@ OFFICIAL = {
     "polygon": {"USDC": "0x3c499c542cef5e3811e1192ce70d8cc03d5c3359", "USDT": "0xc2132d05d31c914a87c6611c10748aeb04b58e8f"},
     "arbitrum": {"USDC": "0xaf88d065e77c8cc2239327c5edb3a432268e5831", "USDT": "0xfd086bc7cd5c481dcc9c85ebe478a1c0b69fcbb9"},
     "tron": {"USDT": "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t", "USDC": "TEkxiTehnzSmSe2XqrBj4w32RUN966rdz8"},
+    "hedera": {"USDC": "0.0.456858"},
+    "algorand": {"USDC": "31566704", "USDT": "312769"},
+    "near": {"USDT": "usdt.tether-token.near", "USDC": "17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1"},
+    "sui": {"USDC": "0xdba34672e30cb065b1f93e3ab55318768fd6fef66c15942c9f7cb846e2f900e7::usdc::USDC"},
+    "celo": {"USDT": "0x48065fbbe25f71c9282ddf5e1cd6d6a887483d5e", "USDC": "0xceba9300f2b948710d2653dd7b07f33a8b32118c"},
+    "polkadot": {"USDT": "1984", "USDC": "1337"},
     "solana": {"USDC": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v", "USDT": "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB",
                "SOL": "So11111111111111111111111111111111111111112"},
 }
@@ -140,6 +146,21 @@ def assess(f: TokenFacts, address: str = "", lang: str = "en") -> tuple[Verdict,
             add("TAX_CHANGEABLE", Severity.high, 25)
         if _flag(s, "is_proxy"):
             add("UPGRADEABLE", Severity.info, 5)
+        # powers read straight from networks GoPlus doesn't cover (rugradar/native.py)
+        from .chains import NAMES as _N
+        if _flag(s, "listed_scam"):
+            add("LISTED_SCAM", Severity.critical, 90, chain=_N.get(f.chain, f.chain))
+        if _flag(s, "paused_now"):
+            add("FROZEN_NOW", Severity.critical, 60)
+        if _flag(s, "code_replaceable"):
+            add("CODE_REPLACEABLE", Severity.high, 25)
+        if _flag(s, "transfer_hook"):
+            add("TRANSFER_HOOK", Severity.medium, 15)
+        if _flag(s, "admin_can_change"):
+            add("ADMIN_CAN_CHANGE", Severity.info, 5)
+        if s.get("_evm_generic") and str(s.get("is_open_source", "")) != "1":
+            if str(s.get("is_open_source", "")) != "0":  # CLOSED_SOURCE already says it when the explorer confirmed
+                add("LIMITED_SCAN", Severity.medium, 15, chain=_N.get(f.chain, f.chain))
 
     # --- Solana authorities (RugCheck-style)
     else:
@@ -261,6 +282,7 @@ def assess(f: TokenFacts, address: str = "", lang: str = "en") -> tuple[Verdict,
     issuer = (sym in official and official.get(sym) == addr_cmp) or str(s.get("trust_list")) == "1"
     if issuer:
         powers = {"OWNER_CHANGES_BALANCES", "PAUSABLE", "BLACKLIST", "MINTABLE", "TAX_CHANGEABLE", "UPGRADEABLE",
+                  "CODE_REPLACEABLE", "ADMIN_CAN_CHANGE", "LIMITED_SCAN",
                   "HIDDEN_OWNER", "RECLAIM_OWNERSHIP", "SOL_MINT_AUTHORITY", "SOL_FREEZE", "SOL_BALANCE_MUTABLE"}
         had = [x for x in out if x.code in powers]
         out = [x for x in out if x.code not in powers]

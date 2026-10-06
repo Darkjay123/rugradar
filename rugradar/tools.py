@@ -71,7 +71,21 @@ def _cached(name: str, key: str, ttl: int, trace: list, fn):
 
 def goplus_security(chain: str, address: str, trace: list) -> dict | None:
     if chain not in GOPLUS:
-        return None  # market-data-only network: nothing to call
+        from . import native
+        if chain not in native.READERS:
+            return None  # no reader for this network yet: market data only
+
+        def nfetch():
+            try:
+                d = native.read(chain, address)
+            except native.NativeError as e:
+                raise ToolError(str(e))
+            if d and d.get("not_a_contract"):
+                return None
+            if d and chain in native.EVM:
+                d["_evm_generic"] = "1"
+            return d
+        return _cached("native", f"nt:{chain}:{address}", 900, trace, nfetch)
     def fetch():
         if chain == "solana":
             data = _get_json("https://api.gopluslabs.io/api/v1/solana/token_security", {"contract_addresses": address})

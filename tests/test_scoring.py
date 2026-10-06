@@ -95,7 +95,7 @@ def test_all_64_networks_are_supported():
     assert len(NAMES) == 64
     for c in ("ton", "sui", "tron", "near", "hedera", "xrpl", "cardano", "polkadot", "stepnetwork", "hyperliquid"):
         assert c in NAMES
-    assert tier("solana") == "full" and tier("arbitrum") == "contract" and tier("ton") == "market"
+    assert tier("solana") == "full" and tier("arbitrum") == "contract" and tier("ton") == "contract" and tier("stepnetwork") == "market"
 
 
 def test_extracts_tokens_on_non_evm_networks():
@@ -164,3 +164,31 @@ def test_gemini_key_alias(monkeypatch):
     importlib.reload(rugradar)
     import os
     assert os.environ["GEMINI_API_KEY"] == "abc123"
+
+
+def test_native_powers_are_scored():
+    from rugradar.agent import build_facts
+    from rugradar import scoring
+    pairs = [{"liquidity": {"usd": 50_000}, "pairCreatedAt": 0, "baseToken": {"symbol": "MEME"}}]
+    sec = {"_source": "Hedera network", "owner_change_balance": "1", "is_mintable": "1", "owner_address": "0.0.123",
+           "is_blacklisted": "1", "paused_now": "1"}
+    f = build_facts("hedera", sec, pairs, 10 * 24 * 3600 * 1000)
+    v, score, out, _ = scoring.assess(f, "0.0.999")
+    codes = {x.code for x in out}
+    assert v.value == "HIGH_RISK" and {"OWNER_CHANGES_BALANCES", "FROZEN_NOW", "MINTABLE"} <= codes
+    assert "CONTRACT_NOT_SCANNED" not in codes
+
+
+def test_real_stablecoin_on_new_network_is_not_a_fake():
+    from rugradar.agent import build_facts
+    from rugradar import scoring
+    pairs = [{"liquidity": {"usd": 500_000}, "pairCreatedAt": 0, "baseToken": {"symbol": "USDC"}}]
+    f = build_facts("hedera", {"is_mintable": "1", "owner_address": "0.0.1", "is_blacklisted": "1"}, pairs, 400 * 24 * 3600 * 1000)
+    v, _, out, _ = scoring.assess(f, "0.0.456858")
+    assert "IMPERSONATION" not in {x.code for x in out} and v.value == "LOW_RISK"
+
+
+def test_orderbook_zero_liquidity_is_not_thin():
+    from rugradar.agent import build_facts
+    pairs = [{"liquidity": {"usd": 0}, "pairCreatedAt": 0, "baseToken": {"symbol": "PURR"}}]
+    assert build_facts("hyperliquid", {"is_mintable": "0"}, pairs, 1).liquidity_usd is None

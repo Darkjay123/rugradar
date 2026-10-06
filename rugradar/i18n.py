@@ -1,5 +1,14 @@
 """Every finding in plain English and in Nigerian Pidgin. Values are filled in by the rules engine."""
 T = {
+ "CODE_REPLACEABLE": ("Whoever controls this token can swap out its code at any time, so it could start blocking sales or printing tokens tomorrow.",
+                      "The person wey control this token fit change im code anytime, so tomorrow e fit start to block selling or print more token."),
+ "ADMIN_CAN_CHANGE": ("An admin key can still change this token's rules.", "Admin still fit change the rules of this token."),
+ "LISTED_SCAM": ("This token is on {chain}'s own scam list.", "{chain} don put this token for their scam list."),
+ "TRANSFER_HOOK": ("Every transfer runs extra code the creator controls, which can be used to block selling.",
+                   "Every time you send am, extra code wey the creator control go run, and e fit use am block selling."),
+ "FROZEN_NOW": ("Transfers of this token are frozen right now. You can't send or sell it.", "Dem don freeze this token now now. You no fit send or sell am."),
+ "LIMITED_SCAN": ("We read this contract's functions on {chain}, but its source code isn't published, so a hidden sell block can't be ruled out.",
+                  "We read the contract functions for {chain}, but dem never publish the source code, so we no fit swear say dem no hide sell block inside."),
  "ISSUER_CONTROLLED": ("This is the official token. Its issuer can freeze or pause it, which is normal for big stablecoins and not a scam sign.",
                        "Na the original token be this. The company wey issue am fit freeze or pause am, and na normal thing for big stablecoin, e no be scam sign."),
  "CONTRACT_NOT_SCANNED": ("We can't read token contracts on {chain} yet, so we can't rule out hidden traps like blocked selling or unlimited minting. This check only covers the market.",

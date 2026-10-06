@@ -9,6 +9,7 @@ import json, os, time, uuid
 from datetime import datetime, timezone
 from concurrent.futures import ThreadPoolExecutor, as_completed, TimeoutError as FutTimeout
 from .models import CheckRequest, Report, TokenFacts, Verdict, Money, CHAINS
+from .native import ORDERBOOK
 from .chains import NAMES, GOPLUS, tier, canon
 from . import tools, scoring, explain as ex, parse, memory, store
 from .redact import redact, message_flags
@@ -19,7 +20,7 @@ SHARE_BASE = os.environ.get("RUGRADAR_URL", "https://rugradar-dun.vercel.app")
 RUN_BUDGET_S = float(os.environ.get("RUGRADAR_RUN_BUDGET_S", "20"))  # whole-check time budget
 SOURCE_NAMES = {"goplus": "GoPlus contract scan", "honeypot_sim": "Honeypot.is test trade", "dexscreener": "DexScreener market data",
                 "creator_wallet": "creator wallet history", "rugcheck": "RugCheck report",
-                "jupiter": "Jupiter live sell quote"}
+                "jupiter": "Jupiter live sell quote", "native": "the network's own on-chain data"}
 STEP_LABELS = {"goplus": "Scanning the contract code", "dexscreener": "Checking the market and pool",
                "honeypot_sim": "Running a test buy and sell", "rugcheck": "Pulling the Solana risk report",
                "fx": "Getting today's naira rate", "creator_wallet": "Checking the creator's wallet history",
@@ -82,7 +83,7 @@ def build_facts(chain: str, sec: dict | None, pairs: list, now_ms: float, sim=No
         name=sec.get("token_name") or meta.get("name") or bt.get("name"),
         symbol=sec.get("token_symbol") or meta.get("symbol") or bt.get("symbol"),
         holder_count=int(hc) if hc.isdigit() else None,
-        liquidity_usd=((best or {}).get("liquidity") or {}).get("usd"),
+        liquidity_usd=(((best or {}).get("liquidity") or {}).get("usd") or None) if chain in ORDERBOOK else ((best or {}).get("liquidity") or {}).get("usd"),
         pair_age_hours=age, buy_tax=_f(sec.get("buy_tax")), sell_tax=_f(sec.get("sell_tax")),
         security=sec, has_security_data=bool(sec), has_market_data=bool(best),
         sim=sim, creator=creator, rugcheck=rc, ngn_per_usd=fx, previous=previous,
@@ -90,7 +91,7 @@ def build_facts(chain: str, sec: dict | None, pairs: list, now_ms: float, sim=No
         supply=(_f((best or {}).get("fdv")) / _f(best.get("priceUsd"))) if best and _f(best.get("fdv")) and _f(best.get("priceUsd")) else None,
         txns_h24=((best or {}).get("txns") or {}).get("h24"),
         price_change_h24=_f(((best or {}).get("priceChange") or {}).get("h24")),
-        contract_scannable=chain in GOPLUS,
+        contract_scannable=chain in GOPLUS or bool(sec),
         pool_addresses=[p["pairAddress"] for p in pairs if p.get("pairAddress")] + list((rc or {}).get("pools") or []),
         exit=exit,
     )
@@ -198,7 +199,8 @@ def run(req: CheckRequest, *, sec=None, pairs=None, sim=None, creator=None, rc=N
 
     used = [SOURCE_NAMES[s["tool"]] for s in trace if s.get("tool") in SOURCE_NAMES and (s.get("found") or s.get("cached") or s.get("resumed")) and "error" not in s]
     if offline:
-        used = [n for k, n in SOURCE_NAMES.items() if {"goplus": got["sec"], "honeypot_sim": got["sim"], "dexscreener": got["pairs"],
+        used = [n for k, n in SOURCE_NAMES.items() if {"goplus": got["sec"] if req.chain in GOPLUS else None,
+                                                      "native": got["sec"] if req.chain not in GOPLUS else None, "honeypot_sim": got["sim"], "dexscreener": got["pairs"],
                                                       "creator_wallet": creator, "rugcheck": got["rc"], "jupiter": exit}[k]]
     tried = list(dict.fromkeys(SOURCE_NAMES[s["tool"]] for s in trace if s.get("tool") in SOURCE_NAMES and not s.get("skipped")))
     coverage = None if offline else {"read": len(set(used)), "missing": [n for n in tried if n not in used]}
