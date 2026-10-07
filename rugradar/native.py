@@ -307,21 +307,37 @@ def ton(address: str) -> dict | None:
         # Every TON holder gets their own jetton-wallet contract, and that contract decides whether a
         # transfer (a sale) goes through. Honeypot jettons ship a custom wallet that refuses transfers.
         # tonapi recognises the standard wallet codes by interface; anything else is custom code.
+        # One bulk read covers both questions: the code of the first holders' jetton wallets, and which kind of
+        # personal wallet each holder uses (the TON test sale needs that to build their transfer).
         wallets = [h.get("address") for h in hs if h.get("address")][:2]
-        seen = []
-        for w in wallets:
-            acc = G(f"https://tonapi.io/v2/accounts/{quote(w, safe='')}", ok404=True) or {}
-            if acc.get("status") == "active":
-                seen.append(set(acc.get("interfaces") or []))
+        owners = [(h.get("owner") or {}).get("address") for h in hs if (h.get("owner") or {}).get("is_wallet")]
+        bulk = (P("https://tonapi.io/v2/accounts/_bulk", {"account_ids": wallets + [o for o in owners if o]}) or {}).get("accounts") or []
+        by = {_ton_raw(a.get("address", "")): a for a in bulk}
+        seen = [set(by[_ton_raw(w)].get("interfaces") or []) for w in wallets
+                if by.get(_ton_raw(w), {}).get("status") == "active"]
         if seen:
             out["_read"].append("holder wallet code")
             if any(not (i & TON_STD_WALLETS) for i in seen):
                 out["custom_wallet_code"] = "1"
             elif any("jetton_wallet_governed" in i for i in seen):
                 out["is_blacklisted"] = "1"  # governed wallets: the admin can lock any holder's balance
+        sellers = []
+        for h in hs:
+            o = by.get(_ton_raw((h.get("owner") or {}).get("address", ""))) or {}
+            ver = next((i for i in o.get("interfaces") or [] if i in ("wallet_v5r1", "wallet_v4r2", "wallet_v3r2")), None)
+            if ver and o.get("status") == "active" and int(h.get("balance") or 0) > 0:
+                sellers.append({"owner": _ton_raw(o["address"]), "jetton_wallet": _ton_raw(h["address"]),
+                                "balance": int(h["balance"]), "version": ver})
+        if sellers:
+            out["_ton_sellers"] = sellers[:6]
     except NativeError:
         pass
     return out
+
+
+def _ton_raw(a: str) -> str:
+    from .tonsim import raw_address
+    return raw_address(a) or a
 
 
 TON_STD_WALLETS = {"jetton_wallet", "jetton_wallet_v1", "jetton_wallet_v2", "jetton_wallet_governed"}

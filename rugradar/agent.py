@@ -218,7 +218,7 @@ def run(req: CheckRequest, *, sec=None, pairs=None, sim=None, creator=None, rc=N
             yield {"type": "step", "tool": "sell_test", "label": STEP_LABELS["sell_test"], "status": "done" if got["sim"] else "no data"}
         if got["sim"] is None and req.chain == "ton" and got["pairs"] and time.time() - t0 < RUN_BUDGET_S - 6:
             yield {"type": "step", "tool": "sell_test", "label": STEP_LABELS["sell_test"], "status": "started"}
-            got["sim"] = step("sell_test", tonsim.sell_test, req.address, got["pairs"], trace)
+            got["sim"] = step("sell_test", tonsim.sell_test, req.address, got["pairs"], trace, (got["sec"] or {}).get("_ton_sellers"))
             yield {"type": "step", "tool": "sell_test", "label": STEP_LABELS["sell_test"], "status": "done" if got["sim"] else "no data"}
         if exit is None and req.chain == "solana" and got["fx"] and got["pairs"] and time.time() - t0 < RUN_BUDGET_S:
             yield {"type": "step", "tool": "jupiter", "label": STEP_LABELS["jupiter"], "status": "started"}

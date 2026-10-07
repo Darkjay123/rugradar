@@ -145,14 +145,28 @@ def wallet_external(version: str, wallet: str, subwallet: int, seqno: int, msg: 
 _C = httpx.Client(timeout=12, headers={**UA, **({"Authorization": f"Bearer {os.environ['TONAPI_KEY']}"} if os.environ.get("TONAPI_KEY") else {})})
 
 
+import threading
+_LOCK, _LAST = threading.Lock(), [0.0]
+GAP_S = float(os.environ.get("TONAPI_GAP_S", "0.05" if os.environ.get("TONAPI_KEY") else "0.35"))
+
+
+def _pace():
+    with _LOCK:
+        wait = _LAST[0] + GAP_S - time.time()
+        if wait > 0:
+            time.sleep(wait)
+        _LAST[0] = time.time()
+
+
 def _req(method, path, **kw):
     for attempt in range(3):
+        _pace()
         try:
             r = _C.request(method, T + path, **kw)
         except httpx.HTTPError:
             r = None
         if r is not None and r.status_code == 429:
-            time.sleep(1.1 + attempt)
+            time.sleep(1.0)
             continue
         if r is None or r.status_code >= 500:
             time.sleep(0.4)
@@ -210,33 +224,23 @@ def _try(h: dict, info: dict, pool: str) -> dict:
     return {"wallet": wallet, "result": res, **({"exit_code": code} if code is not None else {})}
 
 
-def sell_test(master: str, pairs: list, trace: list | None = None, max_wallets: int = 3) -> dict | None:
+def sell_test(master: str, pairs: list, trace: list | None = None, sellers: list | None = None, want: int = 2) -> dict | None:
+    """Test `want` holders (two agreeing is enough for a verdict); a third only stands in for an inconclusive one."""
     best = max(pairs or [], key=lambda p: (p.get("liquidity") or {}).get("usd") or 0, default=None)
     pool = raw_address((best or {}).get("pairAddress", ""))
     if not pool:
         return None
     t0 = time.time()
-    hs = (_req("GET", f"/jettons/{master}/holders", params={"limit": 15}) or {}).get("addresses") or []
     pools = {raw_address(p.get("pairAddress", "")) for p in pairs or []}
-    cands = []
-    for h in hs:
-        o = h.get("owner") or {}
-        own = raw_address(o.get("address", ""))
-        if o.get("is_wallet") and own and own not in pools and int(h.get("balance") or 0) > 0:
-            cands.append({"owner": own, "jetton_wallet": raw_address(h["address"]), "balance": int(h["balance"])})
+    cands = [c for c in (sellers if sellers is not None else _fetch_sellers(master)) if c["owner"] not in pools][:want + 2]
     if not cands:
         return None
-    bulk = _req("POST", "/accounts/_bulk", json={"account_ids": [c["owner"] for c in cands]}) or {}
-    info = {}
-    for a in bulk.get("accounts") or []:
-        ver = next((i for i in a.get("interfaces") or [] if i in WALLETS), None)
-        if ver and a.get("status") == "active":
-            info[raw_address(a["address"])] = {"version": ver}
-    cands = [c for c in cands if c["owner"] in info][:max_wallets]
-    if not cands:
-        return None
-    with ThreadPoolExecutor(len(cands)) as ex:
-        rows = list(ex.map(lambda c: _try(c, info[c["owner"]], pool), cands))
+    rows, i = [], 0
+    with ThreadPoolExecutor(want) as ex:
+        while i < len(cands) and sum(r["result"] in ("ok", "blocked") for r in rows) < want:
+            need = want - sum(r["result"] in ("ok", "blocked") for r in rows)
+            batch, i = cands[i:i + need], i + need
+            rows += list(ex.map(lambda c: _try(c, {"version": c["version"]}, pool), batch))
     tested = [r for r in rows if r["result"] in ("ok", "blocked")]
     if not tested:
         if trace is not None:
@@ -251,4 +255,19 @@ def sell_test(master: str, pairs: list, trace: list | None = None, max_wallets: 
            "ms": int((time.time() - t0) * 1000)}
     if trace is not None:
         trace.append({"tool": "sell_test", "found": True, "tested": len(tested), "failed": failed, "ms": out["ms"], "ts": time.time()})
+    return out
+
+
+def _fetch_sellers(master: str) -> list:
+    hs = (_req("GET", f"/jettons/{master}/holders", params={"limit": 12}) or {}).get("addresses") or []
+    owners = [(h.get("owner") or {}).get("address") for h in hs if (h.get("owner") or {}).get("is_wallet")]
+    if not owners:
+        return []
+    by = {raw_address(a.get("address", "")): a for a in (_req("POST", "/accounts/_bulk", json={"account_ids": owners}) or {}).get("accounts") or []}
+    out = []
+    for h in hs:
+        o = by.get(raw_address((h.get("owner") or {}).get("address", ""))) or {}
+        ver = next((i for i in o.get("interfaces") or [] if i in WALLETS), None)
+        if ver and o.get("status") == "active" and int(h.get("balance") or 0) > 0:
+            out.append({"owner": raw_address(o["address"]), "jetton_wallet": raw_address(h["address"]), "balance": int(h["balance"]), "version": ver})
     return out
