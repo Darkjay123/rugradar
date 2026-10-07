@@ -179,7 +179,8 @@ def assess(f: TokenFacts, address: str = "", lang: str = "en") -> tuple[Verdict,
                 add("TRANSFER_HOOK", Severity.medium, 15)
             else:
                 add("TRANSFER_HOOK", Severity.info, 5)
-        if _flag(s, "custom_wallet_code"):
+        ton_sold = sim.get("ok") and (sim.get("holders_tested") or 0) >= 2 and not (sim.get("holders_failed") or 0)
+        if _flag(s, "custom_wallet_code") and not ton_sold:  # custom code that let real holders send to the pool isn't a trap
             add("TON_CUSTOM_WALLET", Severity.high, 40)
         if _flag(s, "network_offline"):
             add("NETWORK_OFFLINE", Severity.medium, 20, chain=_N.get(f.chain, f.chain))

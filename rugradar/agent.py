@@ -11,7 +11,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed, TimeoutError as
 from .models import CheckRequest, Report, TokenFacts, Verdict, Money, CHAINS
 from .native import ORDERBOOK
 from .chains import NAMES, GOPLUS, tier, canon
-from . import sim as sim_mod, solsim
+from . import sim as sim_mod, solsim, tonsim
 from . import tools, scoring, explain as ex, parse, memory, store
 from .redact import redact, message_flags
 from .i18n import t
@@ -215,6 +215,10 @@ def run(req: CheckRequest, *, sec=None, pairs=None, sim=None, creator=None, rc=N
         if got["sim"] is None and req.chain == "solana" and got["rc"] and got["pairs"] and time.time() - t0 < RUN_BUDGET_S - 5:
             yield {"type": "step", "tool": "sell_test", "label": STEP_LABELS["sell_test"], "status": "started"}
             got["sim"] = step("sell_test", solsim.sell_test, req.address, got["rc"], trace)
+            yield {"type": "step", "tool": "sell_test", "label": STEP_LABELS["sell_test"], "status": "done" if got["sim"] else "no data"}
+        if got["sim"] is None and req.chain == "ton" and got["pairs"] and time.time() - t0 < RUN_BUDGET_S - 6:
+            yield {"type": "step", "tool": "sell_test", "label": STEP_LABELS["sell_test"], "status": "started"}
+            got["sim"] = step("sell_test", tonsim.sell_test, req.address, got["pairs"], trace)
             yield {"type": "step", "tool": "sell_test", "label": STEP_LABELS["sell_test"], "status": "done" if got["sim"] else "no data"}
         if exit is None and req.chain == "solana" and got["fx"] and got["pairs"] and time.time() - t0 < RUN_BUDGET_S:
             yield {"type": "step", "tool": "jupiter", "label": STEP_LABELS["jupiter"], "status": "started"}
