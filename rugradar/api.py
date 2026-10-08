@@ -6,7 +6,7 @@ import json, re, statistics, time
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import HTMLResponse, StreamingResponse, Response
 from pydantic import BaseModel, Field, ValidationError
-from .models import Report, Verdict
+from .models import Report, Verdict, CHAINS
 from .agent import check_text, run_text, resume, InputError
 from .redact import redact
 from . import store, memory
@@ -133,7 +133,7 @@ def api_stats():
             by_arm[f"{r['arm']}:{r.get('model')}"].append(r)
     up, down = store.safe(store.get, "fb:up", default=0) or 0, store.safe(store.get, "fb:down", default=0) or 0
     return {
-        "checks": len(runs), "store": store.backend(),
+        "checks": max(len(runs), int(store.safe(store.get, "stats:total", default=0) or 0)), "networks": len(CHAINS), "store": store.backend(),
         "cost_per_check_usd": round(statistics.mean([r["cost"] for r in runs]), 6) if runs else 0,
         "p50_ms": int(statistics.median([r["ms"] for r in runs])) if runs else 0,
         "verdicts": {v.value: sum(r["verdict"] == v.value for r in runs) for v in Verdict},

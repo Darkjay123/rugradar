@@ -286,6 +286,7 @@ def run(req: CheckRequest, *, sec=None, pairs=None, sim=None, creator=None, rc=N
 
 def record_stats(rep: Report, explain_step: dict):
     """Cost per task (not per token), latency, verdict mix and A/B arm, for /api/stats."""
+    store.safe(store.incr, "stats:total")
     store.safe(store.push, "stats:runs", {"ts": time.time(), "verdict": rep.verdict.value, "cost": rep.cost_usd, "ms": rep.latency_ms,
                                           "route": rep.route, "arm": explain_step.get("arm"), "model": explain_step.get("model"),
                                           "rejected": explain_step.get("rejected"), "trace_id": rep.trace_id}, cap=2000)

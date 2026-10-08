@@ -14,7 +14,7 @@ def _f(size, bold=True):
 
 
 def png(r: dict) -> bytes:
-    lang = r.get("lang") if r.get("lang") in LABEL else "en"
+    lang = r.get("lang") if r.get("lang") in LABEL and r.get("lang") not in ("ar", "hi") else "en"
     v = r["verdict"]
     im = Image.new("RGB", (1200, 630), BG[v])
     d = ImageDraw.Draw(im)

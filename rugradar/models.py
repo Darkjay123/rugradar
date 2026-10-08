@@ -35,7 +35,8 @@ class CheckRequest(BaseModel):
     @classmethod
     def known_lang(cls, v: str) -> str:
         v = (v or "en").lower()
-        return v if v in ("en", "pcm") else "en"
+        from .i18n import LANGS
+        return v if v in LANGS else "en"
 
     @model_validator(mode="after")
     def address_matches_chain(self):
@@ -111,6 +112,13 @@ class Money(BaseModel):
     note: str
     currency: str = "NGN"
     symbol: str = "₦"
+    amount: Optional[int] = None    # same as amount_ngn, clearer name for new clients
+    get_back: Optional[int] = None  # same as get_back_ngn
+
+    @model_validator(mode="after")
+    def _mirror(self):
+        self.amount, self.get_back = self.amount_ngn, self.get_back_ngn
+        return self
 
 
 class Report(BaseModel):

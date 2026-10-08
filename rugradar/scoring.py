@@ -11,7 +11,7 @@ What each block borrows from the competitor research:
 """
 from __future__ import annotations
 from .models import Finding, Severity, TokenFacts, Verdict
-from .i18n import t
+from .i18n import t, ago_words
 
 DEAD = {"0x000000000000000000000000000000000000dead", "0x0000000000000000000000000000000000000000"}
 
@@ -70,12 +70,13 @@ def _pct(v) -> float | None:
 
 
 def _ago(h: float, lang: str = "en") -> str:
+    mins, now, hrs, days, _ = ago_words(lang)
     if h < 1:
         m = max(1, round(h * 60))
-        return (f"about {m} minutes ago" if lang != "pcm" else f"like {m} minutes ago") if m > 1 else ("just now" if lang != "pcm" else "just now")
+        return mins.format(n=m) if m > 1 else now
     if h < 48:
-        return f"about {h:.0f} hours ago" if lang != "pcm" else f"like {h:.0f} hours ago"
-    return f"about {h/24:.0f} days ago" if lang != "pcm" else f"like {h/24:.0f} days ago"
+        return hrs.format(n=f"{h:.0f}")
+    return days.format(n=f"{h/24:.0f}")
 
 
 def _money_ngn(usd: float, rate: float | None, sym: str = "₦") -> str:
@@ -290,7 +291,7 @@ def assess(f: TokenFacts, address: str = "", lang: str = "en") -> tuple[Verdict,
         drop = 1 - (x / (x + sold)) ** 2
         if drop >= 0.6:
             held = any(x2.code in ("ONE_WALLET_HOLDS", "ONE_WALLET_HOLDS_SOME", "WHALE_CONCENTRATION") for x2 in out)
-            add("WHALE_EXIT", Severity.medium, 5 if held else 15, pct=f"{tw:.0%}", drop=("over 90%" if lang != "pcm" else "pass 90%") if drop > 0.9 else f"{drop:.0%}")
+            add("WHALE_EXIT", Severity.medium, 5 if held else 15, pct=f"{tw:.0%}", drop=ago_words(lang)[4] if drop > 0.9 else f"{drop:.0%}")
 
     # --- Your own exit: a live round-trip quote for the amount you typed (Solana)
     ex = f.exit or {}

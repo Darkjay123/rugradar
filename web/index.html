@@ -206,6 +206,12 @@ footer .links a:hover{color:var(--g)}
 @keyframes shake{10%,90%{transform:translateX(-1px)}20%,80%{transform:translateX(3px)}30%,50%,70%{transform:translateX(-5px)}40%,60%{transform:translateX(5px)}}
 @media (max-width:480px){.top{flex-direction:column;align-items:flex-start}.gauge{width:104px;height:104px}.panel{padding:15px;border-radius:22px}.stats b{font-size:21px}}
 @media (prefers-reduced-motion:reduce){*,*:before,*:after{animation:none!important;transition:none!important}}
+
+/* right-to-left: Arabic script must never be letter-spaced (it breaks the joined letters); numbers and the gauge stay left-to-right */
+[dir=rtl] body,[dir=rtl] body *{letter-spacing:0!important}
+[dir=rtl] .gauge,[dir=rtl] .gauge *,[dir=rtl] .amg,[dir=rtl] .n,[dir=rtl] .pts,[dir=rtl] .addr,[dir=rtl] .tk{direction:ltr;unicode-bidi:isolate}
+[dir=rtl] .ex span,[dir=rtl] .fl li span.x,[dir=rtl] .sum{unicode-bidi:plaintext}
+[dir=rtl] .sum,[dir=rtl] .fl,[dir=rtl] .money p{font-family:system-ui,"Segoe UI",Tahoma,"Noto Sans Arabic",sans-serif;line-height:1.75}
 </style></head><body>
 <canvas id="radar" aria-hidden="true"></canvas>
 <div class="wrap">
@@ -281,15 +287,18 @@ rsize();addEventListener('resize',rsize);rdraw();document.addEventListener('visi
 // English and Pidgin are written by hand. Every other language goes through Google Translate in the visitor's own browser.
 const LANGS=[['en','English','English'],['pcm','Naija Pidgin','Nigerian Pidgin'],['es','Español','Spanish'],['fr','Français','French'],['pt','Português','Portuguese'],['de','Deutsch','German'],['it','Italiano','Italian'],['nl','Nederlands','Dutch'],['pl','Polski','Polish'],['tr','Türkçe','Turkish'],['ru','Русский','Russian'],['uk','Українська','Ukrainian'],['ar','العربية','Arabic'],['fa','فارسی','Persian'],['ur','اردو','Urdu'],['hi','हिन्दी','Hindi'],['bn','বাংলা','Bengali'],['id','Bahasa Indonesia','Indonesian'],['ms','Bahasa Melayu','Malay'],['vi','Tiếng Việt','Vietnamese'],['th','ไทย','Thai'],['tl','Filipino','Filipino'],['zh-CN','简体中文','Chinese (Simplified)'],['zh-TW','繁體中文','Chinese (Traditional)'],['ja','日本語','Japanese'],['ko','한국어','Korean'],['sw','Kiswahili','Swahili'],['ha','Hausa','Hausa'],['yo','Yorùbá','Yoruba'],['ig','Igbo','Igbo'],['am','አማርኛ','Amharic'],['zu','isiZulu','Zulu']];
 const RTL=['ar','fa','ur'];let ui='en';
+const HAND=['en','pcm','fr','es','pt','ar','sw','hi'];const apiLang=()=>HAND.includes(ui)?ui:'en';
+const NT=()=>apiLang()!=='en'&&apiLang()!=='pcm'?' notranslate" translate="no':'';
 function setLang(l){lang=l;$$('[data-t]').forEach(e=>{const v=U[l][e.dataset.t];if(v!=null)e.textContent=v});$('#gol').textContent=L[l].go;detect();if(last)render(last,true)}
 let gtState=0,gtWait=[];
 function gtLoad(){if(gtState)return;gtState=1;window.gtInit=()=>{new google.translate.TranslateElement({pageLanguage:'en',autoDisplay:false},'gt');gtState=2;const go=()=>{const c=document.querySelector('.goog-te-combo');if(c&&c.options.length>1){gtWait.splice(0).forEach(f=>f(c))}else setTimeout(go,150)};go()};
  const sc=document.createElement('script');sc.src='https://translate.google.com/translate_a/element.js?cb=gtInit';sc.async=true;sc.onerror=()=>{gtState=0;toast('Translation could not load. Showing English.');pick('en',true)};document.head.appendChild(sc)}
-function gtSet(code){const apply=c=>{c.value=code;c.dispatchEvent(new Event('change'))};const c=document.querySelector('.goog-te-combo');if(c&&c.options.length>1)return apply(c);gtWait.push(apply);gtLoad()}
+function gtSet(code){const apply=c=>{c.value=code;c.dispatchEvent(new Event('change'))};const c=document.querySelector('.goog-te-combo');if(c&&c.options.length>1)return apply(c);gtWait.push(apply);gtLoad();
+ setTimeout(()=>{if(gtWait.length&&ui===code){gtWait.length=0;gtState=0;toast(HAND.includes(code)?'Page translation is slow. Results still come in your language.':'Translation could not load. Showing English.');if(!HAND.includes(code))pick('en',true)}},9000)}
 function gtOff(){const h=location.hostname;['',';domain='+h,';domain=.'+h].forEach(d=>document.cookie='googtrans=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/'+d);const c=document.querySelector('.goog-te-combo');if(c){c.value='en';c.dispatchEvent(new Event('change'))}}
 function pick(code,quiet){const row=LANGS.find(x=>x[0]===code)||LANGS[0];ui=row[0];$('#lmn').textContent=row[1];document.documentElement.dir=RTL.includes(ui)?'rtl':'ltr';document.documentElement.lang=ui;
  if(ui==='en'||ui==='pcm'){gtOff();setLang(ui)}else{if(lang!=='en')setLang('en');gtSet(ui)}
- try{localStorage.setItem('rr_lang',ui)}catch(e){}closeLm();if(!quiet&&ui!=='en'&&ui!=='pcm')toast('🌍 '+row[1])}
+ try{localStorage.setItem('rr_lang',ui)}catch(e){}closeLm();if(last&&last.lang!==apiLang()&&q.value.trim()&&!$('#go').disabled)run();if(!quiet&&ui!=='en'&&ui!=='pcm')toast('🌍 '+row[1])}
 function drawLm(f=''){f=f.toLowerCase();const rows=LANGS.filter(x=>!f||x[1].toLowerCase().includes(f)||x[2].toLowerCase().includes(f)||x[0].toLowerCase().startsWith(f));
  $('#lml').innerHTML=rows.map((x,i)=>(i===2&&!f?'<div class="sep">Google Translate</div>':'')+`<button type="button" role="option" data-l="${x[0]}" class="${x[0]===ui?'on':''}"><span>${esc(x[1])}</span><small>${x[0]===ui?'✓':esc(x[2])}</small></button>`).join('')||'<div class="sep">No match</div>';
  $$('#lml button').forEach(b=>b.onclick=()=>pick(b.dataset.l))}
@@ -357,12 +366,12 @@ const I={wa:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0
 let last=null;
 function render(j,quiet){last=j;const lb=L[lang],vc=VC[j.verdict]||VC.UNKNOWN;R.rgb=vc[1];
  const red=j.findings.filter(f=>f.points),good=j.findings.filter(f=>!f.points);
- const fi=[...red,...good].filter(f=>!(f.points&&(j.summary||'').includes(f.plain))).map((f,i)=>`<li class="${f.points?'bad':'ok'}" style="animation-delay:${quiet?0:.35+i*.07}s"><span class="ic">${f.points?'!':'✓'}</span><span>${esc(f.plain)}</span>${f.points?`<span class="pts">+${f.points}</span>`:''}</li>`).join('');
+ const fi=[...red,...good].filter(f=>!(f.points&&(j.summary||'').includes(f.plain))).map((f,i)=>`<li class="${f.points?'bad':'ok'}" style="animation-delay:${quiet?0:.35+i*.07}s"><span class="ic">${f.points?'!':'✓'}</span><span class="x${NT()}">${esc(f.plain)}</span>${f.points?`<span class="pts">+${f.points}</span>`:''}</li>`).join('');
  const tok=[j.name,j.symbol&&('$'+j.symbol)].filter(Boolean).join(' ');const share=j.share_url?j.share_text:j.share_text.replace(/https?:\S+$/,location.href);
  const flags=j.message_flags&&j.message_flags.length?`<div class="card warn"><h4>⚠️ ${T2[lang].flags}</h4><ul>${j.message_flags.map(f=>`<li>${esc(f.plain)}</li>`).join('')}</ul>${j.removed&&j.removed.length?`<div class="mem">🛡️ ${T2[lang].removed} ${esc(j.removed.join(', ').replace('_',' '))}</div>`:''}</div>`:'';
  const m=j.money;let money='';
- if(m){const ms=m.symbol!=null?(m.symbol.length>1&&!/\s$/.test(m.symbol)&&/^[A-Z]/.test(m.symbol)?m.symbol+' ':m.symbol):CUR[cur][0];j._ms=ms;const put=m.amount_ngn||+$('#amt').value,back=m.get_back_ngn,ratio=back!=null&&put?Math.max(0,Math.min(1,back/put)):0;
-  money=`<div class="money"><div class="row"><div><div class="k">${t('put')}</div><div class="n notranslate" translate="no">${fmtc(put,ms)}</div></div><div style="text-align:right"><div class="k">${t('back')}</div><div class="n notranslate" translate="no" id="mback" style="color:${ratio>.9?'var(--g)':ratio>.5?'var(--y)':'var(--r)'}">${back!=null?fmtc(0,ms):'—'}</div></div></div><div class="mb ${ratio<.5?'lose':''}"><i id="mbar" data-w="${(ratio*100).toFixed(1)}"></i></div><p>${esc(m.note)}${back==null||back===0?' '+esc(t('lose'))+'.':''}</p></div>`;
+ if(m){const ms=m.symbol!=null?(m.symbol.length>1&&!/\s$/.test(m.symbol)&&/^[A-Z]/.test(m.symbol)?m.symbol+' ':m.symbol):CUR[cur][0];j._ms=ms;const put=(m.amount??m.amount_ngn)||+$('#amt').value,back=m.get_back??m.get_back_ngn,ratio=back!=null&&put?Math.max(0,Math.min(1,back/put)):0;
+  money=`<div class="money"><div class="row"><div><div class="k">${t('put')}</div><div class="n notranslate" translate="no">${fmtc(put,ms)}</div></div><div style="text-align:right"><div class="k">${t('back')}</div><div class="n notranslate" translate="no" id="mback" style="color:${ratio>.9?'var(--g)':ratio>.5?'var(--y)':'var(--r)'}">${back!=null?fmtc(0,ms):'—'}</div></div></div><div class="mb ${ratio<.5?'lose':''}"><i id="mbar" data-w="${(ratio*100).toFixed(1)}"></i></div><p class="x${NT()}">${esc(m.note)}${back==null||back===0?' '+esc(t('lose'))+'.':''}</p></div>`;
   j._back=back}
  const mk=j.market||{},tl=[];
  if(mk.liquidity_usd!=null)tl.push([t('liq'),'$'+compact(mk.liquidity_usd),mk.liquidity_usd<10000?'r':mk.liquidity_usd<100000?'y':'g']);
@@ -377,7 +386,7 @@ function render(j,quiet){last=j;const lb=L[lang],vc=VC[j.verdict]||VC.UNKNOWN;R.
  <div style="min-width:0"><div class="vk">${t('risk')}</div><div class="vl">${lb.labels[j.verdict]||j.verdict}</div>${tok?`<div class="tk notranslate" translate="no">${esc(tok)}</div>`:''}
  <div class="pills"><span class="pl">⛓️ ${esc(j.chain_name||j.chain)}</span>${j.address?`<span class="pl addr notranslate" translate="no" id="addr" title="${esc(j.address)}">${esc(short(j.address))} ${I.cp.replace('<svg','<svg width="12" height="12"')}</span>`:''}</div></div></div>
  ${j.memory?`<div class="mem">🕘 ${esc(T2[lang].mem(j.memory))}</div>`:''}
- <p class="sum">${esc(j.summary)}</p>${money}${tiles}
+ <p class="sum${NT()}">${esc(j.summary)}</p>${money}${tiles}
  ${fi?`<div class="fh">${t('flags')}</div><ul class="fl">${fi}</ul>`:''}
  <div class="src">${(j.sources||[]).map(s=>`<span class="pl">✓ ${esc(s)}</span>`).join('')}</div>
  <div class="meta">${lb.src}: ${esc((j.sources||[]).length)}${j.coverage&&j.coverage.missing.length?` · ${t('miss')}: ${esc(j.coverage.missing.join(', '))}`:''}${j.checked_at?` · ${t('at')} ${new Date(j.checked_at).toLocaleTimeString([],{hour:'numeric',minute:'2-digit'})}`:''}</div>
@@ -398,7 +407,7 @@ function fail(msg){last=null;R.rgb='255,93,93';$('#out').innerHTML=`<div class="
 function run(){const b=$('#go');b.disabled=true;$('#gol').textContent=L[lang].busy;document.body.classList.add('busy');R.speed=.03;R.rgb='62,224,143';last=null;
  $('#out').innerHTML=`<div class="card"><div class="scan"><div class="scope"><div class="beam"></div><span class="b" style="top:22%;left:62%"></span><span class="b" style="top:60%;left:28%;animation-delay:.6s"></span></div><div><h3>${t('scanh')}</h3><p>${t('scanp')}</p></div></div><div class="bar"><i id="pb"></i></div><ul class="steps" id="steps"></ul></div>`;
  $('#out').scrollIntoView({behavior:RM?'auto':'smooth',block:'nearest'});
- const p=new URLSearchParams({q:q.value.trim(),chain:chainVal(),lang,amount:$('#amt').value||50000,currency:cur});
+ const p=new URLSearchParams({q:q.value.trim(),chain:chainVal(),lang:lang==='pcm'?'pcm':apiLang(),amount:$('#amt').value||50000,currency:cur});
  const seen={},done=()=>{b.disabled=false;$('#gol').textContent=L[lang].go;document.body.classList.remove('busy');R.speed=.006};let finished=false;
  const prog=()=>{const all=Object.values(seen),d=all.filter(li=>li.className!=='started').length;const pb=$('#pb');if(pb)pb.style.width=Math.max(6,Math.min(96,d/Math.max(all.length+1,5)*100))+'%'};
  const es=new EventSource('/api/stream?'+p);
@@ -415,7 +424,7 @@ $('#f').onsubmit=e=>{e.preventDefault();if(!q.value.trim()){q.focus();return}run
 /* ---------- extras ---------- */
 fetch('/api/health').then(r=>r.json()).then(h=>{BOT=h.telegram_bot||null;if(BOT){const a=$('#tgl');a.href='https://t.me/'+BOT;a.hidden=false}}).catch(()=>{});
 let statsDone=false;
-function loadStats(){if(statsDone)return;statsDone=true;fetch('/api/stats').then(r=>r.json()).then(s=>{if(!s||!s.checks)return;$('#stats').hidden=false;countUp($('#st1'),s.checks,v=>compact(v));countUp($('#st2'),64,v=>Math.round(v));countUp($('#st3'),(s.p50_ms||0)/1000,v=>v.toFixed(1)+'s')}).catch(()=>{})}
+function loadStats(){if(statsDone)return;statsDone=true;fetch('/api/stats').then(r=>r.json()).then(s=>{if(!s||!s.checks)return;$('#stats').hidden=false;countUp($('#st1'),s.checks,v=>compact(v));countUp($('#st2'),s.networks||64,v=>Math.round(v));countUp($('#st3'),(s.p50_ms||0)/1000,v=>v.toFixed(1)+'s')}).catch(()=>{})}
 const io='IntersectionObserver' in window?new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');if(e.target.querySelector('#stats'))loadStats();io.unobserve(e.target)}}),{threshold:.15}):null;
 $$('.rv').forEach(e=>io?io.observe(e):(e.classList.add('in'),loadStats()));
 

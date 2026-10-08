@@ -110,7 +110,17 @@ T = {
 }
 
 
+from .i18n_more import MORE, AGO  # noqa: E402
+
+LANGS = ("en", "pcm", *MORE)
+
+
 def t(key: str, lang: str = "en", **kw) -> str:
     en, pcm = T[key]
     kw.setdefault("s", "₦")
-    return (pcm if lang == "pcm" else en).format(**kw)
+    s = pcm if lang == "pcm" else MORE.get(lang, {}).get(key, en)
+    return s.format(**kw)
+
+
+def ago_words(lang: str = "en"):
+    return AGO.get(lang, AGO["en"])

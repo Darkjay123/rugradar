@@ -22,7 +22,7 @@ def check_token(text: str, chain: str = "auto", lang: str = "en", amount_ngn: in
     """Check if a crypto token is a scam before buying. `text` can be a contract address, a DexScreener or
     pump.fun link, or a whole forwarded "gem" message, on any of 64 networks (chain "auto" detects it; or pass a
     DexScreener chain id like "ton", "sui", "tron", "hyperevm"). Returns a rule-based verdict (LOW_RISK, CAUTION,
-    HIGH_RISK, UNKNOWN), a 0-100 risk score, plain-language findings (lang "en" or "pcm" for Nigerian Pidgin),
+    HIGH_RISK, UNKNOWN), a 0-100 risk score, plain-language findings (lang "en", "pcm" for Nigerian Pidgin, or hand-written "fr", "es", "pt", "ar", "sw", "hi"),
     what you'd get back in naira, and red flags in the message itself."""
     try:
         return check_text(text[:2000], chain, lang, max(1, min(amount_ngn, 1_000_000_000_000)), currency).model_dump()
@@ -49,8 +49,8 @@ def explain_finding(code: str, lang: str = "en") -> dict:
     """Plain-language meaning of a RugRadar finding code such as HONEYPOT or LP_UNLOCKED."""
     if code not in T:
         return {"error": f"unknown code; known: {sorted(T)}"}
-    en, pcm = T[code]
-    return {"code": code, "text": pcm if lang == "pcm" else en}
+    from .i18n import t, LANGS
+    return {"code": code, "text": t(code, lang if lang in LANGS else "en", s="$", **{k: "…" for k in ("n", "failed", "chain", "buys", "pct", "when", "how", "money", "who", "what", "sym", "a", "b", "drop")})}
 
 
 @mcp.tool()

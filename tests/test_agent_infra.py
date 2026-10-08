@@ -217,3 +217,37 @@ def test_money_line_speaks_the_users_currency():
     assert m.symbol == "₦" and "₦50,000" in m.note
     assert CheckRequest(chain="bsc", address="0x" + "1" * 40, currency="eur").currency == "EUR"
     assert CheckRequest(chain="bsc", address="0x" + "1" * 40, currency="zzz").currency == "USD"
+
+
+def test_hand_written_languages_keep_every_placeholder():
+    import re
+    from rugradar.i18n import T
+    from rugradar.i18n_more import MORE, AGO
+    ph = lambda s: sorted(re.findall(r"\{\w+\}", s))
+    for lang, d in MORE.items():
+        assert set(d) == set(T), lang
+        for k, v in d.items():
+            assert ph(v) == ph(T[k][0]), (lang, k)
+        assert lang in AGO
+
+
+def test_languages_reach_findings_flags_money_and_share_page():
+    from rugradar.i18n import t
+    from rugradar.models import CheckRequest, Money
+    from rugradar.redact import message_flags
+    from rugradar.scoring import _ago
+    from rugradar.page import render
+    assert t("LEAD_HIGH_RISK", "fr").startswith("Risque élevé")
+    assert t("LEAD_HIGH_RISK", "de") == t("LEAD_HIGH_RISK", "en")
+    assert CheckRequest(chain="base", address="0x" + "1" * 40, lang="SW").lang == "sw"
+    assert CheckRequest(chain="base", address="0x" + "1" * 40, lang="xx").lang == "en"
+    assert _ago(5, "es") == "hace unas 5 horas"
+    # a French user must never get the Pidgin message flags
+    msg = "Send your seed phrase to claim the airdrop, 100x guaranteed, only 10 minutes left"
+    fr, en = message_flags(msg, "fr"), message_flags(msg, "en")
+    assert [f["plain"] for f in fr] == [f["plain"] for f in en]
+    m = Money(amount_ngn=100, get_back_ngn=90, note="x", currency="USD", symbol="$")
+    assert (m.amount, m.get_back) == (100, 90)
+    html = render({"lang": "ar", "verdict": "HIGH_RISK", "score": 90, "address": "0xabc", "chain": "base", "trace_id": "abc12345",
+                   "findings": [], "summary": t("LEAD_HIGH_RISK", "ar"), "sources": []}, "https://x")
+    assert 'dir="rtl"' in html and "خطر مرتفع" in html

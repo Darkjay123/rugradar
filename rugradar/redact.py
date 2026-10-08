@@ -76,7 +76,7 @@ def redact(text: str, keep_bare_hex: bool = False) -> tuple[str, list[str]]:
 
 def message_flags(text: str, lang: str = "en") -> list[dict]:
     """Red flags in the pitch itself. Separate from the token verdict on purpose: the message can't make a token look safer."""
-    li = 1 if lang == "en" else 2
+    li = 2 if lang == "pcm" else 1
     found = []
     if find_seed(text):
         found.append({"code": "SEED_PHRASE_SHARED", "plain": FLAGS["SEED_PHRASE_SHARED"][li]})
