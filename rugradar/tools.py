@@ -186,6 +186,27 @@ def rugcheck(address: str, trace: list) -> dict | None:
     return _cached("rugcheck", f"rc4:{address}", 600, trace, fetch)
 
 
+# Currencies the money line can speak. Symbol only: the amount itself is the user's own number.
+CURRENCIES = {"USD": "$", "EUR": "€", "GBP": "£", "NGN": "₦", "INR": "₹", "KES": "KSh ", "GHS": "GH₵", "ZAR": "R", "EGP": "E£",
+              "BRL": "R$", "MXN": "MX$", "ARS": "AR$", "CAD": "CA$", "AUD": "A$", "JPY": "¥", "CNY": "CN¥", "KRW": "₩",
+              "IDR": "Rp ", "PHP": "₱", "VND": "₫", "THB": "฿", "MYR": "RM ", "SGD": "S$", "PKR": "Rs ", "BDT": "৳",
+              "TRY": "₺", "RUB": "₽", "UAH": "₴", "PLN": "zł ", "AED": "AED ", "SAR": "SAR ", "CHF": "CHF "}
+
+
+def usd_rate(currency: str, trace: list) -> float | None:
+    """Units of `currency` per 1 USD, from the same free table (cached 6 hours)."""
+    currency = (currency or "USD").upper()
+    if currency == "USD":
+        return 1.0
+
+    def fetch():
+        data = _get_json("https://open.er-api.com/v6/latest/USD", tries=2)
+        rates = (data or {}).get("rates") or {}
+        return {"rates": {k: v for k, v in rates.items() if k in CURRENCIES}} if rates else None
+    out = _cached("fx", "fx:usd:all", 6 * 3600, trace, fetch)
+    return ((out or {}).get("rates") or {}).get(currency)
+
+
 def ngn_per_usd(trace: list) -> float | None:
     def fetch():
         data = _get_json("https://open.er-api.com/v6/latest/USD", tries=2)

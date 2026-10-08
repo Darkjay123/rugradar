@@ -18,14 +18,14 @@ mcp = FastMCP("rugradar", stateless_http=True, json_response=True, streamable_ht
 
 
 @mcp.tool()
-def check_token(text: str, chain: str = "auto", lang: str = "en", amount_ngn: int = 50_000) -> dict:
+def check_token(text: str, chain: str = "auto", lang: str = "en", amount_ngn: int = 50_000, currency: str = "NGN") -> dict:
     """Check if a crypto token is a scam before buying. `text` can be a contract address, a DexScreener or
     pump.fun link, or a whole forwarded "gem" message, on any of 64 networks (chain "auto" detects it; or pass a
     DexScreener chain id like "ton", "sui", "tron", "hyperevm"). Returns a rule-based verdict (LOW_RISK, CAUTION,
     HIGH_RISK, UNKNOWN), a 0-100 risk score, plain-language findings (lang "en" or "pcm" for Nigerian Pidgin),
     what you'd get back in naira, and red flags in the message itself."""
     try:
-        return check_text(text[:2000], chain, lang, max(100, min(amount_ngn, 1_000_000_000))).model_dump()
+        return check_text(text[:2000], chain, lang, max(1, min(amount_ngn, 1_000_000_000_000)), currency).model_dump()
     except (InputError, ValueError) as e:
         return {"error": str(e)}
 

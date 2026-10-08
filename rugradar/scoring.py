@@ -78,10 +78,10 @@ def _ago(h: float, lang: str = "en") -> str:
     return f"about {h/24:.0f} days ago" if lang != "pcm" else f"like {h/24:.0f} days ago"
 
 
-def _money_ngn(usd: float, rate: float | None) -> str:
+def _money_ngn(usd: float, rate: float | None, sym: str = "₦") -> str:
     if rate:
         n = usd * rate
-        return f"₦{n/1e6:,.1f} million" if n >= 1e6 else f"₦{n:,.0f}"
+        return f"{sym}{n/1e6:,.1f} million" if n >= 1e6 else f"{sym}{n:,.0f}"
     return f"${usd:,.0f}"
 
 
@@ -244,7 +244,7 @@ def assess(f: TokenFacts, address: str = "", lang: str = "en") -> tuple[Verdict,
     # --- Market reality
     if f.has_market_data:
         if f.liquidity_usd is not None and f.liquidity_usd < 10_000:
-            add("THIN_LIQUIDITY", Severity.high, 30, money=_money_ngn(f.liquidity_usd, f.ngn_per_usd))
+            add("THIN_LIQUIDITY", Severity.high, 30, money=_money_ngn(f.liquidity_usd, f.cur_per_usd, f.cur_symbol) if f.cur_symbol else _money_ngn(f.liquidity_usd, f.ngn_per_usd))
         if f.pair_age_hours is not None and f.pair_age_hours < 72:
             add("BRAND_NEW", Severity.medium, 15, when=_ago(f.pair_age_hours, lang))
     elif f.has_security_data:

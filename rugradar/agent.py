@@ -25,7 +25,7 @@ SOURCE_NAMES = {"goplus": "GoPlus contract scan", "honeypot_sim": "Honeypot.is t
                 "sell_test": "RugRadar test sale from real buyers' wallets"}
 STEP_LABELS = {"goplus": "Scanning the contract code", "dexscreener": "Checking the market and pool",
                "honeypot_sim": "Running a test buy and sell", "rugcheck": "Pulling the Solana risk report",
-               "fx": "Getting today's naira rate", "creator_wallet": "Checking the creator's wallet history",
+               "fx": "Getting today's exchange rate", "creator_wallet": "Checking the creator's wallet history",
                "jupiter": "Getting a live quote to sell it back", "sell_test": "Testing a sale from real buyers' wallets"}
 
 
@@ -117,25 +117,27 @@ def build_facts(chain: str, sec: dict | None, pairs: list, now_ms: float, sim=No
     )
 
 
-def money_line(verdict: Verdict, f: TokenFacts, findings, amount: int, lang: str) -> Money | None:
+def money_line(verdict: Verdict, f: TokenFacts, findings, amount: int, lang: str, currency: str = "NGN") -> Money | None:
+    sym = tools.CURRENCIES.get(currency, "$")
+    M = lambda **kw: Money(currency=currency, symbol=sym.strip(), **kw)
     if verdict == Verdict.unknown:
         return None
     stuck = any(x.code in ("HONEYPOT", "HOLDERS_STUCK", "SOL_NON_TRANSFERABLE", "CANNOT_SELL_ALL") for x in findings)
     if stuck or not f.has_market_data:
-        return Money(amount_ngn=amount, get_back_ngn=0, note=t("MONEY_ZERO", lang, a=f"{amount:,}"))
+        return M(amount_ngn=amount, get_back_ngn=0, note=t("MONEY_ZERO", lang, a=f"{amount:,}", s=sym))
     ex = f.exit or {}
     if ex.get("ratio"):
         back = amount * ex["ratio"]
         back = int(round(back, -2)) if back >= 1000 else int(back)
         if verdict == Verdict.low or ex["ratio"] <= 0.95:
-            return Money(amount_ngn=amount, get_back_ngn=back, note=t("MONEY_LIVE", lang, a=f"{amount:,}", b=f"{back:,}"))
+            return M(amount_ngn=amount, get_back_ngn=back, note=t("MONEY_LIVE", lang, a=f"{amount:,}", b=f"{back:,}", s=sym))
         return None
     taxes = (f.buy_tax or 0) + (f.sell_tax or 0)
     if verdict != Verdict.low and taxes < 0.05:
         return None  # the risk here isn't tax, so a "you'd get ~all of it back" line would mislead
     back = amount * (1 - (f.buy_tax or 0)) * (1 - (f.sell_tax or 0)) * 0.994  # ~0.3% swap fee each way
     back = int(round(back, -2)) if back >= 1000 else int(back)
-    return Money(amount_ngn=amount, get_back_ngn=back, note=t("MONEY", lang, a=f"{amount:,}", b=f"{back:,}"))
+    return M(amount_ngn=amount, get_back_ngn=back, note=t("MONEY", lang, a=f"{amount:,}", b=f"{back:,}", s=sym))
 
 
 def _slim_pairs(pairs):
@@ -220,21 +222,25 @@ def run(req: CheckRequest, *, sec=None, pairs=None, sim=None, creator=None, rc=N
             yield {"type": "step", "tool": "sell_test", "label": STEP_LABELS["sell_test"], "status": "started"}
             got["sim"] = step("sell_test", tonsim.sell_test, req.address, got["pairs"], trace, (got["sec"] or {}).get("_ton_sellers"))
             yield {"type": "step", "tool": "sell_test", "label": STEP_LABELS["sell_test"], "status": "done" if got["sim"] else "no data"}
-        if exit is None and req.chain == "solana" and got["fx"] and got["pairs"] and time.time() - t0 < RUN_BUDGET_S:
+    cur_rate = got["fx"] if req.currency == "NGN" else (1.0 if req.currency == "USD" else
+                                                        (None if offline else step("fx", tools.usd_rate, req.currency, trace)))
+    if not offline:
+        if exit is None and req.chain == "solana" and cur_rate and got["pairs"] and time.time() - t0 < RUN_BUDGET_S:
             yield {"type": "step", "tool": "jupiter", "label": STEP_LABELS["jupiter"], "status": "started"}
-            exit = step("jupiter", tools.jupiter_roundtrip, req.address, req.amount_ngn / got["fx"], trace)
+            exit = step("jupiter", tools.jupiter_roundtrip, req.address, req.amount_ngn / cur_rate, trace)
             yield {"type": "step", "tool": "jupiter", "label": STEP_LABELS["jupiter"], "status": "done" if exit else "no data"}
 
     prev = previous if previous is not None else (memory.last(req.chain, req.address) if use_memory else None)
     facts = build_facts(req.chain, got["sec"], got["pairs"] or [], now_ms, got["sim"], creator, got["rc"], got["fx"], prev,
                         dict(exit, ngn=req.amount_ngn) if exit else None)
+    facts.cur_per_usd, facts.cur_symbol = cur_rate, tools.CURRENCIES.get(req.currency, "$")
     verdict, score, findings, facts = scoring.assess(facts, req.address, req.lang)
     if timed_out and verdict == Verdict.low:  # never call it low risk on half the evidence
         verdict = Verdict.unknown if not facts.has_security_data else Verdict.caution
     trace.append({"step": "rules", "verdict": verdict.value, "score": score, "codes": [f.code for f in findings], "ts": time.time()})
     yield {"type": "step", "tool": "rules", "label": "Applying the safety rules", "status": "done"}
     summary, by, cost = ex.explain(verdict, findings, trace, req.lang, trace_id)
-    money = money_line(verdict, facts, findings, req.amount_ngn, req.lang)
+    money = money_line(verdict, facts, findings, req.amount_ngn, req.lang, req.currency)
 
     used = [SOURCE_NAMES[s["tool"]] for s in trace if s.get("tool") in SOURCE_NAMES and (s.get("found") or s.get("cached") or s.get("resumed")) and "error" not in s]
     if offline:
@@ -302,7 +308,7 @@ def prepare(text: str, chain: str | None = None) -> tuple[str, list[dict], list[
     return clean, message_flags(text), removed
 
 
-def run_text(text: str, chain: str | None = None, lang: str = "en", amount_ngn: int = 50_000):
+def run_text(text: str, chain: str | None = None, lang: str = "en", amount_ngn: int = 50_000, currency: str = "NGN"):
     clean, flags, removed = prepare(text, chain)
     flags = message_flags(text, lang)
     trace: list = []
@@ -313,12 +319,12 @@ def run_text(text: str, chain: str | None = None, lang: str = "en", amount_ngn: 
             raise InputError("That looked like a private key, so we deleted it without reading it. Never paste a private key anywhere. "
                              "If it was a token address on Aptos, Sui, Movement or Starknet, pick that network first, or paste its DexScreener link.")
         raise
-    yield from run(CheckRequest(chain=c, address=a, lang=lang, amount_ngn=amount_ngn), trace=trace, flags=flags, removed=removed)
+    yield from run(CheckRequest(chain=c, address=a, lang=lang, amount_ngn=amount_ngn, currency=currency), trace=trace, flags=flags, removed=removed)
 
 
-def check_text(text: str, chain: str | None = None, lang: str = "en", amount_ngn: int = 50_000) -> Report:
+def check_text(text: str, chain: str | None = None, lang: str = "en", amount_ngn: int = 50_000, currency: str = "NGN") -> Report:
     rep = None
-    for ev in run_text(text, chain, lang, amount_ngn):
+    for ev in run_text(text, chain, lang, amount_ngn, currency):
         if ev["type"] == "report":
             rep = ev["report"]
     return Report(**rep)

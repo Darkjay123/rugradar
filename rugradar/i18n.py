@@ -95,21 +95,22 @@ T = {
  "LEAD_LOW_RISK": ("No major red flags found. That is not a guarantee, so only use money you can afford to lose.",
                    "We no see any big red flag. But e no be guarantee, so only use money wey you fit afford to lose."),
  "LEAD_UNKNOWN": ("We couldn't check this token.", "We no fit check this token."),
- "MONEY": ("If you put in ₦{a} and sold straight away, you'd get back about ₦{b}.",
-           "If you put ₦{a} and sell am sharp sharp, na like ₦{b} you go collect back."),
- "MONEY_LIVE": ("Live quote right now: put in ₦{a} and sell straight back, you'd get about ₦{b}.",
-                "Live price now: if you put ₦{a} and sell am back sharp sharp, na like ₦{b} you go collect."),
+ "MONEY": ("If you put in {s}{a} and sold straight away, you'd get back about {s}{b}.",
+           "If you put {s}{a} and sell am sharp sharp, na like {s}{b} you go collect back."),
+ "MONEY_LIVE": ("Live quote right now: put in {s}{a} and sell straight back, you'd get about {s}{b}.",
+                "Live price now: if you put {s}{a} and sell am back sharp sharp, na like {s}{b} you go collect."),
  "WHALE_EXIT": ("If the biggest wallet ({pct} of supply) sold everything now, the price would fall about {drop}.",
                 "If the biggest wallet ({pct} of all the token) sell everything now, price go fall like {drop}."),
- "THIN_EXIT": ("The pool is so thin that buying ₦{a} and selling straight back loses about {pct}, before the price even moves.",
-               "The pool too small: if you buy ₦{a} and sell am back sharp sharp, you go lose like {pct}, even before price move."),
+ "THIN_EXIT": ("The pool is so thin that buying {s}{a} and selling straight back loses about {pct}, before the price even moves.",
+               "The pool too small: if you buy {s}{a} and sell am back sharp sharp, you go lose like {pct}, even before price move."),
  "NO_SELL_ROUTE": ("Jupiter, the main Solana trading router, will sell it to you but found no route to sell it back right now.",
                    "Jupiter, the main Solana trading app, fit sell am give you, but e no see any way to sell am back right now."),
- "MONEY_ZERO": ("If you put in ₦{a}, you most likely couldn't get any of it back.",
-                "If you put ₦{a}, e fit be say you no go fit collect anything back."),
+ "MONEY_ZERO": ("If you put in {s}{a}, you most likely couldn't get any of it back.",
+                "If you put {s}{a}, e fit be say you no go fit collect anything back."),
 }
 
 
 def t(key: str, lang: str = "en", **kw) -> str:
     en, pcm = T[key]
+    kw.setdefault("s", "₦")
     return (pcm if lang == "pcm" else en).format(**kw)

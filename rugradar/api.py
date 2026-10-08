@@ -57,22 +57,22 @@ def home():
 
 
 @app.get("/api/check", response_model=Report)
-def api_check(request: Request, q: str = "", address: str = "", chain: str = "auto", lang: str = "en", amount: int = 50_000):
+def api_check(request: Request, q: str = "", address: str = "", chain: str = "auto", lang: str = "en", amount: int = 50_000, currency: str = "NGN"):
     _limit(request)
     try:
-        return check_text((q or address)[:2000], chain, lang, max(100, min(amount, 1_000_000_000)))
+        return check_text((q or address)[:2000], chain, lang, max(1, min(amount, 1_000_000_000_000)), currency)
     except (InputError, ValidationError) as e:
         raise HTTPException(422, _bad(e))
 
 
 @app.get("/api/stream")
-def api_stream(request: Request, q: str = "", chain: str = "auto", lang: str = "en", amount: int = 50_000):
+def api_stream(request: Request, q: str = "", chain: str = "auto", lang: str = "en", amount: int = 50_000, currency: str = "NGN"):
     """Server-sent events: each source as it answers, then the report. No staring at a spinner."""
     _limit(request)
 
     def gen():
         try:
-            for ev in run_text(q[:2000], chain, lang, max(100, min(amount, 1_000_000_000))):
+            for ev in run_text(q[:2000], chain, lang, max(1, min(amount, 1_000_000_000_000)), currency):
                 yield f"data: {json.dumps(ev)}\n\n"
         except (InputError, ValidationError) as e:
             yield f"data: {json.dumps({'type': 'error', 'detail': _bad(e)})}\n\n"

@@ -13,7 +13,15 @@ class CheckRequest(BaseModel):
     chain: str
     address: str
     lang: str = "en"
-    amount_ngn: int = Field(default=50_000, ge=100, le=1_000_000_000)
+    amount_ngn: int = Field(default=50_000, ge=1, le=1_000_000_000_000)  # the amount in `currency` (named before other currencies existed)
+    currency: str = "NGN"
+
+    @field_validator("currency")
+    @classmethod
+    def known_currency(cls, v: str) -> str:
+        from .tools import CURRENCIES
+        v = (v or "NGN").upper().strip()
+        return v if v in CURRENCIES else "USD"
 
     @field_validator("chain")
     @classmethod
@@ -85,6 +93,8 @@ class TokenFacts(BaseModel):
     creator: Optional[dict] = None    # GoPlus address-security flags for the deployer wallet
     rugcheck: Optional[dict] = None   # RugCheck summary (Solana)
     ngn_per_usd: Optional[float] = None
+    cur_per_usd: Optional[float] = None   # the user's chosen currency per USD
+    cur_symbol: Optional[str] = None
     previous: Optional[dict] = None   # last time we checked this token (memory)
     pool_tokens: Optional[float] = None  # tokens sitting in the main pool (DexScreener liquidity.base)
     supply: Optional[float] = None       # fdv / price
@@ -96,9 +106,11 @@ class TokenFacts(BaseModel):
 
 
 class Money(BaseModel):
-    amount_ngn: int
+    amount_ngn: int            # amount in `currency` (field names kept for older clients)
     get_back_ngn: int
     note: str
+    currency: str = "NGN"
+    symbol: str = "₦"
 
 
 class Report(BaseModel):

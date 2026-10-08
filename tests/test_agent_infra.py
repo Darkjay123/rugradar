@@ -205,3 +205,15 @@ def test_shared_rate_limit_counts():
     from rugradar import store
     k = "rl:test:1.2.3.4:999"
     assert [store.hit(k, 90) for _ in range(3)][-1] >= 3
+
+
+def test_money_line_speaks_the_users_currency():
+    from rugradar.agent import money_line
+    from rugradar.models import TokenFacts, Verdict, CheckRequest
+    f = TokenFacts(chain="bsc", has_market_data=True, has_security_data=True, buy_tax=0.0, sell_tax=0.0)
+    m = money_line(Verdict.low, f, [], 100, "en", "USD")
+    assert m.currency == "USD" and m.symbol == "$" and m.note.startswith("If you put in $100")
+    m = money_line(Verdict.low, f, [], 50000, "en")            # older callers: naira, unchanged
+    assert m.symbol == "₦" and "₦50,000" in m.note
+    assert CheckRequest(chain="bsc", address="0x" + "1" * 40, currency="eur").currency == "EUR"
+    assert CheckRequest(chain="bsc", address="0x" + "1" * 40, currency="zzz").currency == "USD"

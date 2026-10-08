@@ -27,7 +27,7 @@ def png(r: dict) -> bytes:
     for i, line in enumerate(textwrap.wrap(top, 52)[:3]):
         d.text((60, 310 + i * 46), line, font=_f(34, False), fill=(255, 255, 255))
     m = r.get("money")
-    foot = (f"Put in ₦{m['amount_ngn']:,}, get back about ₦{m['get_back_ngn']:,}" if m else "Check any token before you buy")
+    foot = (f"Put in {m.get('symbol') or '₦'}{m['amount_ngn']:,}, get back about {m.get('symbol') or '₦'}{m['get_back_ngn']:,}" if m else "Check any token before you buy")
     d.text((60, 505), foot, font=_f(38), fill=(255, 255, 255))
     d.text((60, 565), f"Checked {(r.get('checked_at') or '')[:16].replace('T', ' ')} UTC  ·  rugradar-dun.vercel.app",
            font=_f(26, False), fill=(203, 213, 225))

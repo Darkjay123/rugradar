@@ -28,7 +28,7 @@ def render(r: dict, base: str, watch_url: str | None = None) -> str:
     again = f"{base}/?q={e(r['address'])}&chain={e(r['chain'])}&lang={lang}"
     finds = "".join(f'<li class="{e(f["severity"])}">{e(f["plain"])}</li>' for f in r.get("findings", []))
     m = r.get("money")
-    money = (f'<p class="money">{t["back"]} ₦{m["amount_ngn"]:,}, {t["get"]} <b>₦{m["get_back_ngn"]:,}</b>. {e(m["note"])}</p>' if m else "")
+    money = (f'<p class="money">{t["back"]} {e(m.get("symbol") or "₦")}{m["amount_ngn"]:,}, {t["get"]} <b>{e(m.get("symbol") or "₦")}{m["get_back_ngn"]:,}</b>. {e(m["note"])}</p>' if m else "")
     low = f'<p class="note">{t["low"]}</p>' if v == "LOW_RISK" else ""
     when = (r.get("checked_at") or "").replace("T", " ").replace("Z", " UTC")
     src = ", ".join(e(s) for s in r.get("sources", []))
