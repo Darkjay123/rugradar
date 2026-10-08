@@ -1,68 +1,388 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>RugRadar: is this token a scam?</title>
 <meta name="description" content="Paste a token, link or the message you were sent. RugRadar tells you in plain English or Pidgin if it's a scam before you buy.">
+<meta name="theme-color" content="#050b08">
+<meta property="og:title" content="RugRadar: is this token a scam?"><meta property="og:description" content="Paste a token, link or the 'gem' message you were sent. Plain English or Pidgin verdict before you buy. 64 networks, free, no wallet.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='14' fill='%23071510' stroke='%233ee08f' stroke-width='2'/%3E%3Cpath d='M16 16 L16 3 A13 13 0 0 1 28 12 Z' fill='%233ee08f' opacity='.7'/%3E%3Ccircle cx='21' cy='10' r='2.2' fill='%23ff5d5d'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#0b1410;--card:#13211b;--ink:#e8f5ee;--mute:#8fb3a1;--g:#3ee08f;--y:#f5c242;--r:#ff5d5d;--line:#23392f}
-*{box-sizing:border-box}body{margin:0;font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--ink)}
-main{max-width:560px;margin:0 auto;padding:20px 16px 48px}h1{font-size:26px;margin:6px 0 4px}p.sub{color:var(--mute);margin:0 0 18px}
-form{display:grid;gap:10px}textarea,select,input,button{font:inherit;padding:13px;border-radius:12px;border:1px solid var(--line);background:var(--card);color:var(--ink);width:100%}
-textarea{min-height:84px;resize:vertical}.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-button{background:var(--g);color:#05140c;font-weight:700;border:0;cursor:pointer}button:disabled{opacity:.6}
-.lang{display:flex;gap:8px}.lang button{background:var(--card);color:var(--mute);border:1px solid var(--line);padding:8px 12px;width:auto;font-weight:600}
-.lang button.on{color:#05140c;background:var(--g)}
-.card{background:var(--card);border-radius:16px;padding:18px;margin-top:18px}.v{font-weight:800;font-size:21px}
-.LOW_RISK{color:var(--g)}.CAUTION{color:var(--y)}.HIGH_RISK{color:var(--r)}.UNKNOWN{color:var(--mute)}
-.tok{color:var(--mute);font-size:14px;margin-top:2px;word-break:break-all}.money{border-left:3px solid var(--y);padding:8px 12px;margin:12px 0;background:#0f1b16;border-radius:8px}
-ul{padding-left:18px;margin:10px 0 0}li{margin:6px 0}.ok{color:var(--g)}.meta{color:var(--mute);font-size:13px;margin-top:12px}
-.share{display:flex;gap:8px;margin-top:14px}.share a,.share button{flex:1;text-align:center;text-decoration:none;padding:11px;border-radius:10px;font-weight:700;font-size:15px}
-.wa{background:#25d366;color:#04210f}.cp{background:var(--line);color:var(--ink)}.ex{color:var(--mute);font-size:14px;margin-top:12px}.ex a{color:var(--g);cursor:pointer}
-.steps{list-style:none;padding:0;margin:14px 0 0;color:var(--mute);font-size:14px}.steps li{margin:4px 0}.steps .done:before{content:"✓ ";color:var(--g)}.steps .started:before{content:"… "}.steps .bad:before{content:"× ";color:var(--y)}
-.warn{border:1px solid var(--r);background:#2a1414;border-radius:12px;padding:12px 14px;margin-top:14px}.warn b{color:var(--r)}.warn ul{margin:6px 0 0}
-.mem{color:var(--mute);font-size:14px;margin-top:8px}.fb{display:flex;gap:8px;align-items:center;margin-top:12px;color:var(--mute);font-size:14px}.fb button{width:auto;padding:6px 12px;background:var(--line);color:var(--ink);font-weight:600}
-</style></head><body><main>
-<div class="lang"><button id="en" class="on" type="button">English</button><button id="pcm" type="button">Pidgin</button></div>
-<h1 id="h">Is this token a scam?</h1><p class="sub" id="sub">Paste the contract address, a DexScreener or pump.fun link, or the whole message you were sent. Works on 64 networks. We check it before your money does.</p>
-<form id="f"><textarea id="q" placeholder="0x... / pump.fun link / the 'gem' message from the group" required></textarea>
-<div class="row"><select id="chain"><option value="auto">Auto-detect network</option><optgroup label="Deepest checks"><option value="bsc">BNB Chain</option><option value="base">Base</option><option value="ethereum">Ethereum</option><option value="solana">Solana</option></optgroup><optgroup label="Contract scan + market"><option value="abstract">Abstract</option><option value="arbitrum">Arbitrum</option><option value="arc">Arc</option><option value="avalanche">Avalanche</option><option value="berachain">Berachain</option><option value="blast">Blast</option><option value="conflux">Conflux</option><option value="cronos">Cronos</option><option value="linea">Linea</option><option value="manta">Manta</option><option value="mantle">Mantle</option><option value="merlinchain">Merlin Chain</option><option value="monad">Monad</option><option value="optimism">Optimism</option><option value="plasma">Plasma</option><option value="polygon">Polygon</option><option value="robinhood">Robinhood</option><option value="scroll">Scroll</option><option value="soneium">Soneium</option><option value="sonic">Sonic</option><option value="stable">Stable</option><option value="story">Story</option><option value="tron">Tron</option><option value="unichain">Unichain</option><option value="worldchain">World Chain</option><option value="opbnb">opBNB</option><option value="zksync">zkSync</option></optgroup><optgroup label="Market data only"><option value="algorand">Algorand</option><option value="apechain">ApeChain</option><option value="aptos">Aptos</option><option value="beam">Beam</option><option value="cardano">Cardano</option><option value="celo">Celo</option><option value="fantom">Fantom</option><option value="flare">Flare</option><option value="flowevm">Flow EVM</option><option value="fuse">Fuse</option><option value="hedera">Hedera</option><option value="hyperevm">HyperEVM</option><option value="hyperliquid">Hyperliquid</option><option value="icp">ICP</option><option value="injective">Injective</option><option value="ink">Ink</option><option value="katana">Katana</option><option value="kava">Kava</option><option value="megaeth">MegaETH</option><option value="metis">Metis</option><option value="movement">Movement</option><option value="multiversx">MultiversX</option><option value="near">NEAR</option><option value="polkadot">Polkadot</option><option value="pulsechain">PulseChain</option><option value="seiv2">Sei V2</option><option value="stacks">Stacks</option><option value="starknet">Starknet</option><option value="stepnetwork">Step Network</option><option value="sui">Sui</option><option value="ton">TON</option><option value="telos">Telos</option><option value="xrpl">XRPL</option></optgroup></select>
-<input id="amt" type="number" min="100" step="100" value="50000" aria-label="Amount in naira"></div>
-<button id="go">Check it</button></form>
-<div class="ex">Try: <a data-q="0x1f9840a85d5af5bf1d1762f925bdaddc4201f984">UNI</a> · <a data-q="https://dexscreener.com/solana/DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263">a Solana link</a></div>
-<div id="out"></div>
-<p class="meta" id="foot">Free. No wallet connection, nothing to sign. We never store recovery phrases, keys, phone numbers or emails you paste. A clean result is not a guarantee: only use money you can afford to lose.</p>
-</main><script>
-const $=s=>document.querySelector(s),esc=s=>String(s??'').replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
-let lang='en';let BOT=null;fetch('/api/health').then(r=>r.json()).then(h=>{BOT=h.telegram_bot||null}).catch(()=>{});const L={en:{h:'Is this token a scam?',go:'Check it',busy:'Checking...',labels:{LOW_RISK:'Low risk',CAUTION:'Be careful',HIGH_RISK:'High risk',UNKNOWN:'Not found'},src:'Checked with',wa:'Share on WhatsApp',tg:'Alert me on Telegram if it turns',cp:'Copy result',done:'Copied'},
+:root{--bg:#050b08;--bg2:#08130e;--card:rgba(16,30,23,.62);--card2:rgba(22,40,31,.75);--ink:#eafaf1;--mute:#8fb3a1;--dim:#5f8172;--g:#3ee08f;--t:#2dd4bf;--y:#f5c242;--r:#ff5d5d;--line:rgba(120,200,160,.14);--line2:rgba(120,200,160,.26);--glow:62,224,143;--rad:20px;--ff:Inter,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;--fd:"Space Grotesk",Inter,system-ui,sans-serif}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+[hidden]{display:none!important}
+html{scroll-behavior:smooth}
+body{margin:0;font:16px/1.55 var(--ff);background:var(--bg);color:var(--ink);overflow-x:hidden;min-height:100vh}
+body:before{content:"";position:fixed;inset:0;z-index:-2;background:radial-gradient(900px 600px at 15% -10%,rgba(45,212,191,.13),transparent 60%),radial-gradient(800px 500px at 100% 10%,rgba(62,224,143,.10),transparent 60%),radial-gradient(700px 700px at 50% 120%,rgba(62,224,143,.07),transparent 60%),var(--bg)}
+body:after{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;background-image:linear-gradient(var(--line) 1px,transparent 1px),linear-gradient(90deg,var(--line) 1px,transparent 1px);background-size:44px 44px;mask-image:radial-gradient(ellipse at 50% 0%,#000 10%,transparent 70%);opacity:.35}
+#radar{position:fixed;top:-120px;left:50%;transform:translateX(-50%);width:min(980px,160vw);height:min(980px,160vw);z-index:-1;pointer-events:none;opacity:.55;transition:opacity .6s}
+body.busy #radar{opacity:.9}
+a{color:var(--g)}
+.wrap{max-width:640px;margin:0 auto;padding:0 18px}
+nav{display:flex;align-items:center;justify-content:space-between;padding:18px 0 6px}
+.logo{display:flex;align-items:center;gap:10px;font:700 19px var(--fd);letter-spacing:-.02em;color:var(--ink);text-decoration:none}
+.logo svg{width:30px;height:30px}
+.logo .sw{transform-origin:16px 16px;animation:spin 3.2s linear infinite}
+.seg{position:relative;display:flex;background:var(--card);border:1px solid var(--line);border-radius:999px;padding:4px;backdrop-filter:blur(12px)}
+.seg button{position:relative;z-index:1;border:0;background:none;color:var(--mute);font:600 13px var(--ff);padding:7px 14px;border-radius:999px;cursor:pointer;transition:color .25s}
+.seg button.on{color:#04150c}
+.seg .pill{position:absolute;top:4px;bottom:4px;left:4px;border-radius:999px;background:linear-gradient(135deg,var(--g),var(--t));transition:transform .35s cubic-bezier(.6,.2,.1,1.2),width .35s;box-shadow:0 4px 18px rgba(var(--glow),.35)}
+.hero{text-align:center;padding:38px 0 22px}
+.badge{display:inline-flex;align-items:center;gap:8px;font:600 12.5px var(--ff);color:var(--g);background:rgba(62,224,143,.08);border:1px solid rgba(62,224,143,.25);padding:6px 12px;border-radius:999px;letter-spacing:.02em}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--g);box-shadow:0 0 0 0 rgba(var(--glow),.7);animation:ping 1.8s infinite}
+h1{font:700 clamp(36px,9vw,58px)/1.02 var(--fd);letter-spacing:-.035em;margin:18px 0 12px}
+.grad{background:linear-gradient(100deg,var(--g) 10%,var(--t) 45%,var(--y) 90%);background-size:200% auto;-webkit-background-clip:text;background-clip:text;color:transparent;animation:shine 6s linear infinite}
+.sub{color:var(--mute);font-size:17px;max-width:500px;margin:0 auto}
+.trust{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin-top:18px}
+.trust span{font-size:13px;color:var(--mute);padding:6px 11px;border:1px solid var(--line);border-radius:999px;background:rgba(10,20,15,.5);display:inline-flex;gap:6px;align-items:center}
+.trust b{color:var(--ink);font-weight:600}
+.panel{position:relative;background:var(--card);border:1px solid var(--line2);border-radius:26px;padding:18px;backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);box-shadow:0 30px 80px -30px rgba(0,0,0,.8),inset 0 1px 0 rgba(255,255,255,.05);overflow:hidden}
+.panel:before{content:"";position:absolute;inset:0;pointer-events:none;background:radial-gradient(420px circle at var(--mx,50%) var(--my,0%),rgba(var(--glow),.10),transparent 60%);transition:opacity .3s}
+.field{position:relative}
+textarea{width:100%;min-height:104px;resize:vertical;font:16px/1.5 var(--ff);color:var(--ink);background:rgba(4,12,8,.6);border:1px solid var(--line2);border-radius:16px;padding:15px 16px 44px;outline:none;transition:border-color .2s,box-shadow .2s}
+textarea::placeholder{color:var(--dim)}
+textarea:focus{border-color:rgba(var(--glow),.6);box-shadow:0 0 0 4px rgba(var(--glow),.12)}
+.tools{position:absolute;left:10px;right:10px;bottom:10px;display:flex;align-items:center;gap:8px}
+.det{font-size:12.5px;font-weight:600;color:var(--mute);padding:4px 10px;border-radius:999px;background:rgba(255,255,255,.04);border:1px solid var(--line);opacity:0;transform:translateY(4px);transition:.25s;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:70%}
+.det.show{opacity:1;transform:none}
+.det.good{color:var(--g);border-color:rgba(62,224,143,.3)}
+.det.msg{color:var(--y);border-color:rgba(245,194,66,.3)}
+.tools .sp{flex:1}
+.ib{border:1px solid var(--line);background:rgba(255,255,255,.04);color:var(--mute);font:600 12.5px var(--ff);padding:5px 10px;border-radius:10px;cursor:pointer;display:inline-flex;gap:6px;align-items:center;transition:.2s}
+.ib:hover{color:var(--ink);border-color:var(--line2);background:rgba(255,255,255,.07)}
+.lbl{font:600 12px var(--ff);text-transform:uppercase;letter-spacing:.09em;color:var(--dim);margin:18px 2px 9px;display:flex;justify-content:space-between;align-items:center}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{border:1px solid var(--line2);background:rgba(255,255,255,.03);color:var(--mute);font:600 13.5px var(--ff);padding:8px 13px;border-radius:12px;cursor:pointer;transition:all .2s;display:inline-flex;align-items:center;gap:7px}
+.chip:hover{color:var(--ink);transform:translateY(-1px);border-color:rgba(var(--glow),.4)}
+.chip.on{color:#04150c;background:linear-gradient(135deg,var(--g),var(--t));border-color:transparent;box-shadow:0 6px 20px -6px rgba(var(--glow),.6)}
+.chip i{width:8px;height:8px;border-radius:50%;display:inline-block}
+.more{position:relative}
+select{appearance:none;-webkit-appearance:none;font:600 13.5px var(--ff);color:var(--mute);background:rgba(255,255,255,.03) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238fb3a1' stroke-width='3'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E") no-repeat right 11px center;border:1px solid var(--line2);border-radius:12px;padding:8px 30px 8px 13px;cursor:pointer;outline:none;max-width:190px}
+select.on{color:#04150c;background-color:var(--g);border-color:transparent}
+select option,select optgroup{background:#0b1712;color:var(--ink)}
+.amt{display:flex;align-items:baseline;gap:6px;font:700 30px var(--fd);letter-spacing:-.02em}
+.amt small{font:500 14px var(--ff);color:var(--mute);letter-spacing:0}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:6px;border-radius:99px;background:linear-gradient(90deg,var(--g) var(--p,45%),rgba(255,255,255,.08) var(--p,45%));outline:none;margin:12px 0 4px}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:24px;height:24px;border-radius:50%;background:#eafff4;border:4px solid var(--g);box-shadow:0 0 0 6px rgba(var(--glow),.15),0 4px 12px rgba(0,0,0,.5);cursor:grab;transition:transform .15s}
+input[type=range]::-webkit-slider-thumb:active{transform:scale(1.15)}
+input[type=range]::-moz-range-thumb{width:18px;height:18px;border-radius:50%;background:#eafff4;border:4px solid var(--g);cursor:grab}
+.ticks{display:flex;gap:6px;flex-wrap:wrap}
+.ticks button{border:0;background:rgba(255,255,255,.04);color:var(--mute);font:600 12px var(--ff);padding:5px 9px;border-radius:8px;cursor:pointer}
+.ticks button:hover{color:var(--ink)}
+.cta{position:relative;width:100%;margin-top:20px;border:0;border-radius:16px;padding:17px;font:700 17px var(--fd);letter-spacing:-.01em;color:#04150c;background:linear-gradient(135deg,var(--g),var(--t));cursor:pointer;overflow:hidden;box-shadow:0 14px 40px -12px rgba(var(--glow),.7);transition:transform .15s,box-shadow .2s,filter .2s;display:flex;align-items:center;justify-content:center;gap:10px}
+.cta:hover{transform:translateY(-2px);box-shadow:0 18px 50px -12px rgba(var(--glow),.85)}
+.cta:active{transform:translateY(0) scale(.99)}
+.cta:after{content:"";position:absolute;top:0;left:-60%;width:40%;height:100%;background:linear-gradient(100deg,transparent,rgba(255,255,255,.45),transparent);transform:skewX(-20deg);animation:sheen 3.6s ease-in-out infinite}
+.cta:disabled{filter:saturate(.6) brightness(.85);cursor:wait}
+.cta svg{width:20px;height:20px}
+.cta:disabled svg{animation:spin 1s linear infinite}
+.kbd{text-align:center;font-size:12px;color:var(--dim);margin-top:9px}
+.kbd kbd{font:600 11px var(--ff);border:1px solid var(--line2);border-bottom-width:2px;border-radius:6px;padding:1px 6px;color:var(--mute)}
+.ex{display:flex;flex-wrap:wrap;align-items:center;gap:8px;justify-content:center;margin:18px 0 0;font-size:13.5px;color:var(--dim)}
+.ex button{border:1px dashed var(--line2);background:none;color:var(--mute);font:600 13px var(--ff);padding:6px 11px;border-radius:999px;cursor:pointer;transition:.2s}
+.ex button:hover{color:var(--g);border-color:rgba(var(--glow),.5);border-style:solid}
+#out{margin-top:22px;scroll-margin-top:16px}
+.card{position:relative;background:var(--card);border:1px solid var(--line2);border-radius:var(--rad);padding:20px;backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);animation:rise .5s cubic-bezier(.2,.8,.2,1) both}
+.card+.card{margin-top:14px}
+.scan{display:flex;gap:18px;align-items:center}
+.scope{position:relative;width:86px;height:86px;flex:none;border-radius:50%;border:1px solid rgba(var(--glow),.35);background:radial-gradient(circle,rgba(var(--glow),.08),transparent 70%)}
+.scope:before,.scope:after{content:"";position:absolute;border-radius:50%;border:1px solid rgba(var(--glow),.2)}
+.scope:before{inset:14px}.scope:after{inset:29px}
+.scope .beam{position:absolute;inset:0;border-radius:50%;background:conic-gradient(from 0deg,rgba(var(--glow),.55),transparent 28%);animation:spin 1.4s linear infinite;mask:radial-gradient(circle,#000 69%,transparent 70%)}
+.scope .b{position:absolute;width:6px;height:6px;border-radius:50%;background:var(--g);box-shadow:0 0 10px var(--g);animation:blink 1.4s infinite}
+.scan h3{margin:0 0 3px;font:600 18px var(--fd)}
+.scan p{margin:0;color:var(--mute);font-size:14px}
+.bar{height:4px;border-radius:9px;background:rgba(255,255,255,.06);margin:16px 0 6px;overflow:hidden}
+.bar i{display:block;height:100%;width:6%;background:linear-gradient(90deg,var(--g),var(--t));border-radius:9px;transition:width .5s ease;box-shadow:0 0 12px rgba(var(--glow),.6)}
+.steps{list-style:none;margin:10px 0 0;padding:0;display:grid;gap:4px}
+.steps li{display:flex;align-items:center;gap:11px;font-size:14.5px;color:var(--mute);padding:7px 4px;animation:rise .35s both}
+.steps li .ic{width:22px;height:22px;flex:none;border-radius:50%;display:grid;place-items:center;font-size:12px;font-weight:800}
+.steps li.started .ic{border:2px solid rgba(var(--glow),.25);border-top-color:var(--g);animation:spin .8s linear infinite}
+.steps li.done{color:var(--ink)}
+.steps li.done .ic{background:rgba(62,224,143,.16);color:var(--g)}
+.steps li.bad .ic{background:rgba(245,194,66,.16);color:var(--y)}
+.steps li .ms{margin-left:auto;font-size:12px;color:var(--dim)}
+.res{overflow:hidden}
+.res.v-HIGH_RISK{border-color:rgba(255,93,93,.45);box-shadow:0 0 0 1px rgba(255,93,93,.1),0 30px 80px -30px rgba(255,93,93,.45);animation:rise .5s both,shake .5s .55s}
+.res.v-LOW_RISK{border-color:rgba(62,224,143,.4);box-shadow:0 30px 80px -34px rgba(62,224,143,.5)}
+.res.v-CAUTION{border-color:rgba(245,194,66,.4);box-shadow:0 30px 80px -34px rgba(245,194,66,.4)}
+.res:before{content:"";position:absolute;inset:0 0 auto 0;height:140px;background:radial-gradient(500px 140px at 20% 0,var(--vc-a,rgba(62,224,143,.16)),transparent 70%);pointer-events:none}
+.top{position:relative;display:flex;gap:18px;align-items:center}
+.gauge{position:relative;width:118px;height:118px;flex:none}
+.gauge svg{width:100%;height:100%;transform:rotate(-90deg)}
+.gauge .trk{fill:none;stroke:rgba(255,255,255,.07);stroke-width:10}
+.gauge .val{fill:none;stroke:var(--vc);stroke-width:10;stroke-linecap:round;transition:stroke-dashoffset 1.4s cubic-bezier(.2,.8,.2,1);filter:drop-shadow(0 0 6px var(--vc))}
+.gauge .num{position:absolute;inset:0;display:grid;place-items:center;text-align:center}
+.gauge .num b{font:700 34px/1 var(--fd);color:var(--ink);letter-spacing:-.03em}
+.gauge .num small{display:block;font-size:11px;color:var(--dim);margin-top:2px;letter-spacing:.06em}
+.vl{font:700 26px/1.1 var(--fd);letter-spacing:-.02em;color:var(--vc)}
+.vk{font:600 11.5px var(--ff);letter-spacing:.1em;text-transform:uppercase;color:var(--dim);margin-bottom:4px}
+.tk{font-size:15px;color:var(--ink);margin-top:6px;font-weight:600}
+.pills{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.pl{font-size:12px;font-weight:600;color:var(--mute);background:rgba(255,255,255,.05);border:1px solid var(--line);padding:3px 9px;border-radius:999px;display:inline-flex;align-items:center;gap:6px}
+.pl.addr{cursor:pointer;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-weight:500}
+.pl.addr:hover{color:var(--ink);border-color:var(--line2)}
+.mem{font-size:13.5px;color:var(--mute);margin-top:14px;padding:9px 12px;border-radius:12px;background:rgba(255,255,255,.03);border:1px solid var(--line);display:flex;gap:8px;align-items:center}
+.sum{font-size:17px;line-height:1.55;margin:16px 0 0;color:var(--ink)}
+.money{margin-top:16px;padding:16px;border-radius:16px;background:linear-gradient(135deg,rgba(245,194,66,.08),rgba(245,194,66,.02));border:1px solid rgba(245,194,66,.22)}
+.money .row{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.money .k{font-size:12px;color:var(--dim);text-transform:uppercase;letter-spacing:.08em;font-weight:600}
+.money .n{font:700 22px var(--fd);letter-spacing:-.02em}
+.money .mb{height:10px;border-radius:9px;background:rgba(255,255,255,.06);margin:12px 0 10px;overflow:hidden;position:relative}
+.money .mb i{position:absolute;inset:0 auto 0 0;width:0;border-radius:9px;background:linear-gradient(90deg,var(--y),var(--g));transition:width 1.3s cubic-bezier(.2,.8,.2,1)}
+.money .mb.lose i{background:linear-gradient(90deg,var(--r),var(--y))}
+.money p{margin:0;font-size:14px;color:var(--mute)}
+.tiles{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:14px}
+.tile{padding:13px 14px;border-radius:14px;background:rgba(255,255,255,.03);border:1px solid var(--line);transition:.2s}
+.tile:hover{border-color:var(--line2);transform:translateY(-2px)}
+.tile .k{font-size:11.5px;color:var(--dim);text-transform:uppercase;letter-spacing:.08em;font-weight:600}
+.tile .n{font:700 20px var(--fd);margin-top:3px;letter-spacing:-.02em}
+.tile .n.g{color:var(--g)}.tile .n.r{color:var(--r)}.tile .n.y{color:var(--y)}
+.fh{font:600 12px var(--ff);text-transform:uppercase;letter-spacing:.09em;color:var(--dim);margin:20px 0 10px}
+.fl{list-style:none;padding:0;margin:0;display:grid;gap:8px}
+.fl li{display:flex;gap:12px;align-items:flex-start;padding:12px 13px;border-radius:14px;background:rgba(255,255,255,.025);border:1px solid var(--line);font-size:15px;animation:rise .45s both}
+.fl li .ic{flex:none;width:26px;height:26px;border-radius:9px;display:grid;place-items:center;font-size:14px;font-weight:800}
+.fl li.bad{border-color:rgba(255,93,93,.22);background:rgba(255,93,93,.05)}
+.fl li.bad .ic{background:rgba(255,93,93,.15);color:var(--r)}
+.fl li.ok .ic{background:rgba(62,224,143,.14);color:var(--g)}
+.fl li .pts{margin-left:auto;flex:none;font:700 12px var(--ff);color:var(--r);background:rgba(255,93,93,.1);padding:3px 8px;border-radius:8px}
+.warn{border-color:rgba(255,93,93,.4)!important;background:linear-gradient(135deg,rgba(255,93,93,.12),rgba(255,93,93,.03))!important}
+.warn h4{margin:0 0 8px;color:var(--r);font:700 16px var(--fd);display:flex;gap:8px;align-items:center}
+.warn ul{margin:0;padding-left:20px}.warn li{margin:5px 0}
+.src{display:flex;flex-wrap:wrap;gap:6px;margin-top:16px}
+.meta{font-size:12.5px;color:var(--dim);margin-top:10px}
+.acts{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:18px}
+.acts a,.acts button{display:flex;align-items:center;justify-content:center;gap:8px;text-decoration:none;padding:13px;border-radius:14px;font:700 14.5px var(--ff);border:0;cursor:pointer;transition:transform .15s,filter .2s}
+.acts a:hover,.acts button:hover{transform:translateY(-2px);filter:brightness(1.08)}
+.acts .wa{background:#25d366;color:#04210f}
+.acts .tg{background:#2aabee;color:#03131d;grid-column:1/-1}
+.acts .cp{background:rgba(255,255,255,.07);color:var(--ink);border:1px solid var(--line2)}
+.acts .again{grid-column:1/-1;background:none;color:var(--mute);border:1px dashed var(--line2)}
+.acts svg{width:18px;height:18px}
+.fb{display:flex;align-items:center;gap:8px;justify-content:center;margin-top:16px;font-size:14px;color:var(--mute)}
+.fb button{border:1px solid var(--line2);background:rgba(255,255,255,.04);border-radius:12px;padding:7px 14px;font-size:17px;cursor:pointer;transition:transform .15s}
+.fb button:hover{transform:scale(1.12) rotate(-6deg)}
+.err{display:flex;gap:12px;align-items:flex-start}.err .ic{font-size:22px}
+section.blk{margin-top:64px}
+section.blk h2{font:700 28px/1.15 var(--fd);letter-spacing:-.03em;text-align:center;margin:0 0 8px}
+section.blk .lead{text-align:center;color:var(--mute);margin:0 auto 22px;max-width:460px}
+.how{display:grid;gap:12px}
+.how .st{display:flex;gap:16px;align-items:flex-start;padding:18px;border-radius:18px;background:var(--card);border:1px solid var(--line);transition:.25s}
+.how .st:hover{border-color:rgba(var(--glow),.35);transform:translateX(4px)}
+.how .n{flex:none;width:40px;height:40px;border-radius:12px;display:grid;place-items:center;font:700 17px var(--fd);color:#04150c;background:linear-gradient(135deg,var(--g),var(--t))}
+.how h3{margin:0 0 3px;font:600 17px var(--fd)}
+.how p{margin:0;color:var(--mute);font-size:14.5px}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:14px}
+.stats div{text-align:center;padding:16px 8px;border-radius:16px;background:var(--card);border:1px solid var(--line)}
+.stats b{display:block;font:700 26px var(--fd);letter-spacing:-.03em;background:linear-gradient(135deg,var(--g),var(--t));-webkit-background-clip:text;background-clip:text;color:transparent}
+.stats span{font-size:12px;color:var(--mute)}
+details{border:1px solid var(--line);background:var(--card);border-radius:16px;padding:0 18px;margin-top:10px;transition:border-color .2s}
+details[open]{border-color:var(--line2)}
+summary{list-style:none;cursor:pointer;padding:16px 0;font-weight:600;display:flex;justify-content:space-between;align-items:center;gap:12px}
+summary::-webkit-details-marker{display:none}
+summary:after{content:"+";font:400 22px var(--fd);color:var(--g);transition:transform .25s}
+details[open] summary:after{transform:rotate(45deg)}
+details p{margin:0 0 16px;color:var(--mute);font-size:15px}
+footer{margin:60px 0 0;padding:26px 0 40px;border-top:1px solid var(--line);text-align:center;color:var(--dim);font-size:13px}
+footer .links{display:flex;gap:16px;justify-content:center;flex-wrap:wrap;margin-bottom:12px}
+footer .links a{color:var(--mute);text-decoration:none;font-weight:600}
+footer .links a:hover{color:var(--g)}
+.toast{position:fixed;left:50%;bottom:24px;transform:translate(-50%,30px);opacity:0;background:#eafff4;color:#04150c;font-weight:700;font-size:14px;padding:10px 16px;border-radius:12px;box-shadow:0 12px 30px rgba(0,0,0,.5);transition:.3s;z-index:9;pointer-events:none}
+.toast.on{transform:translate(-50%,0);opacity:1}
+.rv{opacity:0;transform:translateY(18px);transition:opacity .7s,transform .7s}.rv.in{opacity:1;transform:none}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes ping{0%{box-shadow:0 0 0 0 rgba(var(--glow),.6)}80%,100%{box-shadow:0 0 0 9px rgba(var(--glow),0)}}
+@keyframes shine{to{background-position:200% center}}
+@keyframes sheen{0%,60%{left:-60%}100%{left:130%}}
+@keyframes rise{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+@keyframes blink{0%,100%{opacity:.2}50%{opacity:1}}
+@keyframes shake{10%,90%{transform:translateX(-1px)}20%,80%{transform:translateX(3px)}30%,50%,70%{transform:translateX(-5px)}40%,60%{transform:translateX(5px)}}
+@media (max-width:480px){.top{flex-direction:column;align-items:flex-start}.gauge{width:104px;height:104px}.panel{padding:15px;border-radius:22px}.stats b{font-size:21px}}
+@media (prefers-reduced-motion:reduce){*,*:before,*:after{animation:none!important;transition:none!important}}
+</style></head><body>
+<canvas id="radar" aria-hidden="true"></canvas>
+<div class="wrap">
+<nav><a class="logo" href="/"><svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="14" fill="#071510" stroke="#3ee08f" stroke-width="1.6"/><circle cx="16" cy="16" r="8.5" fill="none" stroke="#3ee08f" stroke-opacity=".35"/><path class="sw" d="M16 16 L16 2 A14 14 0 0 1 29 11 Z" fill="url(#lg)"/><circle cx="22" cy="10" r="2" fill="#ff5d5d"/><defs><linearGradient id="lg" x1="0" x2="1"><stop offset="0" stop-color="#3ee08f" stop-opacity=".9"/><stop offset="1" stop-color="#3ee08f" stop-opacity="0"/></linearGradient></defs></svg>RugRadar</a>
+<div class="seg" id="seg"><span class="pill" id="pill"></span><button id="en" class="on" type="button">English</button><button id="pcm" type="button">Pidgin</button></div></nav>
+<header class="hero">
+<span class="badge"><span class="dot"></span><span data-t="badge">Live on 64 networks</span></span>
+<h1 id="h"><span data-t="h1a">Is this token a</span> <span class="grad" data-t="h1b">scam?</span></h1>
+<p class="sub" id="sub" data-t="sub">Paste the contract address, a DexScreener or pump.fun link, or the whole message you were sent. We check it before your money does.</p>
+<div class="trust"><span>🧪 <b data-t="t1">Test buy &amp; sell</b></span><span>🔒 <b data-t="t2">No wallet needed</b></span><span>🇳🇬 <b data-t="t3">English + Pidgin</b></span></div>
+</header>
+<form id="f" class="panel" autocomplete="off">
+<div class="field"><textarea id="q" required spellcheck="false" placeholder="0x... / pump.fun link / the 'gem' message from the group"></textarea>
+<div class="tools"><span class="det" id="det"></span><span class="sp"></span><button class="ib" type="button" id="paste">📋 <span data-t="paste">Paste</span></button><button class="ib" type="button" id="clr" hidden>✕</button></div></div>
+<div class="lbl"><span data-t="net">Network</span></div>
+<div class="chips" id="nets"><button type="button" class="chip on" data-c="auto">✨ <span data-t="auto">Auto-detect</span></button><button type="button" class="chip" data-c="bsc"><i style="background:#f3ba2f"></i>BNB</button><button type="button" class="chip" data-c="base"><i style="background:#2f6bff"></i>Base</button><button type="button" class="chip" data-c="ethereum"><i style="background:#8c9eff"></i>Ethereum</button><button type="button" class="chip" data-c="solana"><i style="background:linear-gradient(135deg,#9945ff,#14f195)"></i>Solana</button><button type="button" class="chip" data-c="ton"><i style="background:#0098ea"></i>TON</button>
+<span class="more"><select id="chain" aria-label="More networks"><option value="" disabled>More networks</option><optgroup label="Deepest checks"><option value="bsc">BNB Chain</option><option value="base">Base</option><option value="ethereum">Ethereum</option><option value="solana">Solana</option></optgroup><optgroup label="Contract scan + market"><option value="abstract">Abstract</option><option value="arbitrum">Arbitrum</option><option value="arc">Arc</option><option value="avalanche">Avalanche</option><option value="berachain">Berachain</option><option value="blast">Blast</option><option value="conflux">Conflux</option><option value="cronos">Cronos</option><option value="linea">Linea</option><option value="manta">Manta</option><option value="mantle">Mantle</option><option value="merlinchain">Merlin Chain</option><option value="monad">Monad</option><option value="optimism">Optimism</option><option value="plasma">Plasma</option><option value="polygon">Polygon</option><option value="robinhood">Robinhood</option><option value="scroll">Scroll</option><option value="soneium">Soneium</option><option value="sonic">Sonic</option><option value="stable">Stable</option><option value="story">Story</option><option value="tron">Tron</option><option value="unichain">Unichain</option><option value="worldchain">World Chain</option><option value="opbnb">opBNB</option><option value="zksync">zkSync</option></optgroup><optgroup label="Market data only"><option value="algorand">Algorand</option><option value="apechain">ApeChain</option><option value="aptos">Aptos</option><option value="beam">Beam</option><option value="cardano">Cardano</option><option value="celo">Celo</option><option value="fantom">Fantom</option><option value="flare">Flare</option><option value="flowevm">Flow EVM</option><option value="fuse">Fuse</option><option value="hedera">Hedera</option><option value="hyperevm">HyperEVM</option><option value="hyperliquid">Hyperliquid</option><option value="icp">ICP</option><option value="injective">Injective</option><option value="ink">Ink</option><option value="katana">Katana</option><option value="kava">Kava</option><option value="megaeth">MegaETH</option><option value="metis">Metis</option><option value="movement">Movement</option><option value="multiversx">MultiversX</option><option value="near">NEAR</option><option value="polkadot">Polkadot</option><option value="pulsechain">PulseChain</option><option value="seiv2">Sei V2</option><option value="stacks">Stacks</option><option value="starknet">Starknet</option><option value="stepnetwork">Step Network</option><option value="sui">Sui</option><option value="ton">TON</option><option value="telos">Telos</option><option value="xrpl">XRPL</option></optgroup></select></span></div>
+<div class="lbl"><span data-t="amtq">If I put in</span><span class="ticks" id="ticks"><button type="button" data-v="10000">₦10k</button><button type="button" data-v="50000">₦50k</button><button type="button" data-v="200000">₦200k</button><button type="button" data-v="1000000">₦1M</button></span></div>
+<div class="amt"><span id="amtv">₦50,000</span><small data-t="amts">to see what you'd get back</small></div>
+<input type="range" id="sl" min="0" max="1000" value="459" aria-label="Amount in naira"><input type="hidden" id="amt" value="50000">
+<button class="cta" id="go"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 12l6-4"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/></svg><span id="gol">Check it</span></button>
+<div class="kbd"><span data-t="kbd">Free · nothing to sign · press</span> <kbd>Ctrl</kbd> + <kbd>Enter</kbd></div>
+</form>
+<div class="ex"><span data-t="try">Try:</span><button type="button" data-q="0x1f9840a85d5af5bf1d1762f925bdaddc4201f984">🦄 UNI</button><button type="button" data-q="https://dexscreener.com/solana/DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263">🐶 BONK link</button><button type="button" data-q="EQAvlWFDxGF2lXm67y4yzC17wYKD9A0guwPkMs1gOsM__NOT">💎 NOT on TON</button></div>
+<div id="out" aria-live="polite"></div>
+<section class="blk rv"><h2 data-t="howh">How it works</h2><p class="lead" data-t="howl">Three things happen in a few seconds, and you never connect a wallet.</p>
+<div class="how"><div class="st"><div class="n">1</div><div><h3 data-t="s1h">Paste what you got</h3><p data-t="s1p">An address, a link, or the whole hype message from the group. We find the token inside it and flag scam tricks in the message itself.</p></div></div>
+<div class="st"><div class="n">2</div><div><h3 data-t="s2h">We test it like a buyer</h3><p data-t="s2p">We scan the contract, check the pool and the creator's wallet, and run a pretend buy and sell so you see if you can actually get out.</p></div></div>
+<div class="st"><div class="n">3</div><div><h3 data-t="s3h">You get a straight answer</h3><p data-t="s3p">A risk score, the red flags in plain words, and what ₦50,000 in would really come back as. Share it to WhatsApp in one tap.</p></div></div></div>
+<div class="stats" id="stats" hidden><div><b id="st1">0</b><span data-t="st1">checks run</span></div><div><b id="st2">0</b><span data-t="st2">networks</span></div><div><b id="st3">0s</b><span data-t="st3">typical check</span></div></div></section>
+<section class="blk rv"><h2 data-t="faqh">Questions people ask</h2>
+<details><summary data-t="q1">Do I need to connect my wallet?</summary><p data-t="a1">No. RugRadar only reads public data. There is nothing to sign and we never ask for a recovery phrase. Anyone who does is scamming you.</p></details>
+<details><summary data-t="q2">Does "low risk" mean it's safe?</summary><p data-t="a2">No. It means we found no major red flags right now. Tokens can change fast, so only put in money you can afford to lose.</p></details>
+<details><summary data-t="q3">What does the test buy and sell do?</summary><p data-t="a3">We simulate buying and selling the token without spending anything. If the sell fails or the tax is huge, that's a honeypot: you can buy but never get out.</p></details>
+<details><summary data-t="q4">Can I use it in Telegram or my AI tool?</summary><p data-t="a4">Yes. There's a Telegram bot that can also warn you if a token turns bad, and RugRadar is listed on the official MCP Registry so AI assistants can run checks too.</p></details></section>
+<footer><div class="links"><a id="tgl" href="#" target="_blank" rel="noopener" hidden>Telegram bot</a><a href="https://mcprush.com/darkjay123/rugradar-mcp" target="_blank" rel="noopener">MCP server</a><a href="https://github.com/Darkjay123/rugradar" target="_blank" rel="noopener">GitHub</a></div>
+<p id="foot" data-t="foot">Free. No wallet connection, nothing to sign. We never store recovery phrases, keys, phone numbers or emails you paste. A clean result is not a guarantee: only use money you can afford to lose.</p></footer>
+</div>
+<div class="toast" id="toast"></div>
+<script>
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)],esc=s=>String(s??'').replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const RM=matchMedia('(prefers-reduced-motion: reduce)').matches;
+let lang='en',BOT=null;
+const L={en:{h:'Is this token a scam?',go:'Check it',busy:'Scanning...',labels:{LOW_RISK:'Low risk',CAUTION:'Be careful',HIGH_RISK:'High risk',UNKNOWN:'Not found'},src:'Checked with',wa:'Share on WhatsApp',tg:'Alert me on Telegram if it turns',cp:'Copy result',done:'Copied'},
 pcm:{h:'This token na scam?',go:'Check am',busy:'We dey check...',labels:{LOW_RISK:'Risk small',CAUTION:'Shine your eye',HIGH_RISK:'Danger',UNKNOWN:'We no see am'},src:'We check am with',wa:'Send am for WhatsApp',tg:'Make Telegram tell me if e turn',cp:'Copy am',done:'E don copy'}};
-function setLang(l){lang=l;$('#en').className=l==='en'?'on':'';$('#pcm').className=l==='pcm'?'on':'';$('#h').textContent=L[l].h;$('#go').textContent=L[l].go}
-$('#en').onclick=()=>setLang('en');$('#pcm').onclick=()=>setLang('pcm');
-document.querySelectorAll('.ex a').forEach(a=>a.onclick=()=>{$('#q').value=a.dataset.q;$('#chain').value='auto';$('#f').requestSubmit()});
-const ago=(h,pc)=>h<1/60?'just now':h<1?`${Math.round(h*60)} min ago`:h<48?`${Math.round(h)}h ago`:`${Math.round(h/24)} days ago`;
+const U={en:{badge:'Live on 64 networks',h1a:'Is this token a',h1b:'scam?',sub:'Paste the contract address, a DexScreener or pump.fun link, or the whole message you were sent. We check it before your money does.',t1:'Test buy & sell',t2:'No wallet needed',t3:'English + Pidgin',paste:'Paste',net:'Network',auto:'Auto-detect',amtq:'If I put in',amts:"to see what you'd get back",kbd:'Free · nothing to sign · press',try:'Try:',howh:'How it works',howl:'Three things happen in a few seconds, and you never connect a wallet.',s1h:'Paste what you got',s1p:'An address, a link, or the whole hype message from the group. We find the token inside it and flag scam tricks in the message itself.',s2h:'We test it like a buyer',s2p:"We scan the contract, check the pool and the creator's wallet, and run a pretend buy and sell so you see if you can actually get out.",s3h:'You get a straight answer',s3p:'A risk score, the red flags in plain words, and what ₦50,000 in would really come back as. Share it to WhatsApp in one tap.',st1:'checks run',st2:'networks',st3:'typical check',faqh:'Questions people ask',q1:'Do I need to connect my wallet?',a1:'No. RugRadar only reads public data. There is nothing to sign and we never ask for a recovery phrase. Anyone who does is scamming you.',q2:'Does "low risk" mean it\'s safe?',a2:"No. It means we found no major red flags right now. Tokens can change fast, so only put in money you can afford to lose.",q3:'What does the test buy and sell do?',a3:"We simulate buying and selling the token without spending anything. If the sell fails or the tax is huge, that's a honeypot: you can buy but never get out.",q4:'Can I use it in Telegram or my AI tool?',a4:"Yes. There's a Telegram bot that can also warn you if a token turns bad, and RugRadar is listed on the official MCP Registry so AI assistants can run checks too.",foot:'Free. No wallet connection, nothing to sign. We never store recovery phrases, keys, phone numbers or emails you paste. A clean result is not a guarantee: only use money you can afford to lose.',
+ ph:"0x... / pump.fun link / the 'gem' message from the group",d:{evm:'EVM address detected',sol:'Solana-style address detected',ton:'TON address detected',link:'Link detected',msg:'Message: we will scan it for scam tricks too',tron:'Tron address detected'},
+ scanh:'Scanning this token',scanp:'Running live checks across the network',risk:'Risk score',put:'You put in',back:'You get back',lose:'You may not be able to sell at all',liq:'Pool size',hold:'Holders',cr:'Creator holds',ts:'Test sale',pass:'Passed',fail:'failed',flags:'What we found',again:'Check another token',copied:'Copied',addr:'Address copied',miss:"Couldn't read",at:'Checked',pts:'pts',neterr:'Network problem. Try again.',pasteno:'Paste blocked. Long-press the box and paste.',more:'More networks'},
+pcm:{badge:'E dey work for 64 networks',h1a:'This token na',h1b:'scam?',sub:'Paste the contract address, DexScreener or pump.fun link, or the whole message wey dem send you. We go check am before your money enter.',t1:'Test buy and sell',t2:'No wallet needed',t3:'English + Pidgin',paste:'Paste',net:'Network',auto:'Make we find am',amtq:'If I put',amts:'make you see wetin go come back',kbd:'Free · nothing to sign · press',try:'Try:',howh:'How e dey work',howl:'Three things go happen for small seconds, and you no go connect wallet.',s1h:'Paste wetin dem send you',s1p:'Address, link, or the whole hype message from the group. We go find the token inside and show you the scam tricks wey dey the message.',s2h:'We test am like buyer',s2p:'We go scan the contract, check the pool and the creator wallet, and do pretend buy and sell so you go know if you fit comot your money.',s3h:'You go get straight answer',s3p:'Risk score, the wahala for plain words, and wetin ₦50,000 go really return. Send am for WhatsApp with one tap.',st1:'checks wey we don run',st2:'networks',st3:'normal check time',faqh:'Wetin people dey ask',q1:'I need connect my wallet?',a1:'No. RugRadar only dey read public data. Nothing to sign and we no go ever ask for your recovery phrase. Anybody wey ask you for am na scammer.',q2:'"Risk small" mean say e safe?',a2:'No. E mean say we no see big wahala now. Token fit change sharp sharp, so only put money wey you fit lose.',q3:'Wetin the test buy and sell dey do?',a3:'We dey pretend buy and sell the token without spending anything. If the sell fail or the tax too much, na honeypot be that: you go buy but you no go fit comot.',q4:'I fit use am for Telegram or my AI tool?',a4:'Yes. Telegram bot dey wey fit warn you if token turn bad, and RugRadar dey the official MCP Registry so AI assistants fit run checks too.',foot:'Free. No wallet connection, nothing to sign. We no dey keep recovery phrase, keys, phone numbers or emails wey you paste. Clean result no be guarantee: only use money wey you fit lose.',
+ ph:"0x... / pump.fun link / the 'gem' message from the group",d:{evm:'We see EVM address',sol:'We see Solana-type address',ton:'We see TON address',link:'We see link',msg:'Na message: we go check am for scam tricks too',tron:'We see Tron address'},
+ scanh:'We dey scan this token',scanp:'We dey run live checks for the network',risk:'Risk score',put:'You put',back:'You go collect',lose:'You fit no fit sell at all',liq:'Pool size',hold:'Holders',cr:'Creator get',ts:'Test sale',pass:'E pass',fail:'fail',flags:'Wetin we see',again:'Check another token',copied:'E don copy',addr:'Address don copy',miss:'We no fit read',at:'We check am',pts:'pts',neterr:'Network wahala. Try again.',pasteno:'Paste no gree. Press the box long and paste.',more:'More networks'}};
 const T2={en:{steps:'Checking',flags:'Red flags in the message itself',removed:'We removed private info from what you pasted before saving anything:',mem:(m)=>`Last checked ${ago(m.last_checked_hours_ago)}: ${m.last_verdict.replace('_',' ').toLowerCase()} (${m.last_score}/100)`+(m.liquidity_change_pct!=null?`, pool ${m.liquidity_change_pct>0?'+':''}${m.liquidity_change_pct}% since`:''),fbq:'Was this right?',thx:'Thanks, this helps us improve.'},
 pcm:{steps:'We dey check',flags:'Wahala wey dey inside the message',removed:'We comot your private info before we save anything:',mem:(m)=>`We check am ${ago(m.last_checked_hours_ago)}: ${m.last_verdict.replace('_',' ').toLowerCase()} (${m.last_score}/100)`+(m.liquidity_change_pct!=null?`, pool ${m.liquidity_change_pct>0?'+':''}${m.liquidity_change_pct}% since then`:''),fbq:'We talk am correct?',thx:'Thank you, e go help us.'}};
-function render(j){const items=j.findings.filter(f=>!(f.points&&(j.summary||'').includes(f.plain))).map(f=>`<li class="${f.points?'':'ok'}">${esc(f.plain)}</li>`).join('');
-const tok=[j.name,j.symbol&&('$'+j.symbol)].filter(Boolean).join(' ');const share=j.share_url?j.share_text:j.share_text.replace(/https?:\S+$/,location.href);
-const flags=j.message_flags&&j.message_flags.length?`<div class="warn"><b>${T2[lang].flags}</b><ul>${j.message_flags.map(f=>`<li>${esc(f.plain)}</li>`).join('')}</ul>${j.removed&&j.removed.length?`<div class="mem">${T2[lang].removed} ${esc(j.removed.join(', ').replace('_',' '))}</div>`:''}</div>`:'';
-$('#out').innerHTML=`${flags}<div class="card"><div class="v ${j.verdict}">${L[lang].labels[j.verdict]} · ${j.score}/100</div>
-<div class="tok">${esc(tok)} · ${esc(j.chain_name||j.chain)} · ${esc(j.address)}</div>${j.memory?`<div class="mem">${esc(T2[lang].mem(j.memory))}</div>`:''}<p>${esc(j.summary)}</p>
-${j.money?`<div class="money">${esc(j.money.note)}</div>`:''}<ul>${items}</ul>
-<div class="meta">${L[lang].src}: ${esc(j.sources.join(', ')||'-')}${j.coverage&&j.coverage.missing.length?` · ${lang==='pcm'?'We no fit read':'Couldn\'t read'}: ${esc(j.coverage.missing.join(', '))}`:''}${j.checked_at?` · ${lang==='pcm'?'We check am':'Checked'} ${new Date(j.checked_at).toLocaleTimeString([],{hour:'numeric',minute:'2-digit'})}`:''}</div>
-<div class="share"><a class="wa" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(share)}">${L[lang].wa}</a>
-<button class="cp" type="button" id="cp">${L[lang].cp}</button>${BOT&&j.share_url&&j.trace_id&&j.verdict!=='UNKNOWN'?`<a class="wa" target="_blank" rel="noopener" href="https://t.me/${BOT}?start=w${j.trace_id}">${L[lang].tg}</a>`:''}</div>
-<div class="fb" id="fb">${T2[lang].fbq} <button type="button" data-v="up">👍</button><button type="button" data-v="down">👎</button></div></div>`;
-$('#cp').onclick=()=>{navigator.clipboard.writeText(share);$('#cp').textContent=L[lang].done};
-document.querySelectorAll('#fb button').forEach(b=>b.onclick=()=>{fetch('/api/feedback',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({trace_id:j.trace_id,vote:b.dataset.v})});$('#fb').textContent=T2[lang].thx})}
-function run(){const b=$('#go');b.disabled=true;b.textContent=L[lang].busy;
-$('#out').innerHTML=`<div class="card"><div class="mem">${T2[lang].steps}...</div><ul class="steps" id="steps"></ul></div>`;
-const q=$('#q').value.trim(),p=new URLSearchParams({q,chain:$('#chain').value,lang,amount:$('#amt').value||50000});
-const seen={},done=()=>{b.disabled=false;b.textContent=L[lang].go};let finished=false;
-const es=new EventSource('/api/stream?'+p);
-es.onmessage=e=>{const ev=JSON.parse(e.data);
- if(ev.type==='step'){let li=seen[ev.tool];if(!li){li=document.createElement('li');seen[ev.tool]=li;$('#steps').appendChild(li)}
-  li.className=ev.status==='done'?'done':ev.status==='started'?'started':'bad';li.textContent=ev.label+(ev.status!=='done'&&ev.status!=='started'?` (${ev.status})`:'')}
- else if(ev.type==='report'){finished=true;es.close();const j=ev.report;history.replaceState(null,'','?'+new URLSearchParams({q:j.address,chain:j.chain,lang}));render(j);done()}
- else if(ev.type==='error'){finished=true;es.close();$('#out').innerHTML=`<div class="card">${esc(ev.detail)}</div>`;done()}};
-es.onerror=()=>{es.close();if(finished)return;finished=true;
- fetch('/api/check?'+p).then(r=>r.json().then(j=>{if(!r.ok)throw j;render(j)})).catch(j=>{$('#out').innerHTML=`<div class="card">${esc((j&&j.detail)||'Network problem. Try again.')}</div>`}).finally(done)}}
-$('#f').onsubmit=e=>{e.preventDefault();run()};
-const u=new URLSearchParams(location.search);if(u.get('lang')==='pcm')setLang('pcm');if(u.get('q')){$('#q').value=u.get('q');if(u.get('chain'))$('#chain').value=u.get('chain');run()}
+const ago=h=>h<1/60?'just now':h<1?`${Math.round(h*60)} min ago`:h<48?`${Math.round(h)}h ago`:`${Math.round(h/24)} days ago`;
+const t=k=>U[lang][k];
+const toast=m=>{const e=$('#toast');e.textContent=m;e.classList.add('on');clearTimeout(e._t);e._t=setTimeout(()=>e.classList.remove('on'),1800)};
+const VC={LOW_RISK:['#3ee08f','62,224,143'],CAUTION:['#f5c242','245,194,66'],HIGH_RISK:['#ff5d5d','255,93,93'],UNKNOWN:['#8fb3a1','143,179,161']};
+
+/* ---------- radar background ---------- */
+const R={c:$('#radar'),a:0,speed:.006,blips:[],rgb:'62,224,143'};
+function rsize(){const d=devicePixelRatio||1,w=R.c.clientWidth;R.c.width=w*d;R.c.height=w*d;R.d=d}
+function rdraw(){const c=R.c,x=c.getContext('2d'),W=c.width,cx=W/2,cy=W/2,rad=W/2-2;x.clearRect(0,0,W,W);
+ x.strokeStyle=`rgba(${R.rgb},.13)`;x.lineWidth=1*R.d;for(let i=1;i<=5;i++){x.beginPath();x.arc(cx,cy,rad*i/5,0,7);x.stroke()}
+ x.beginPath();x.moveTo(cx-rad,cy);x.lineTo(cx+rad,cy);x.moveTo(cx,cy-rad);x.lineTo(cx,cy+rad);x.stroke();
+ if(x.createConicGradient){const g=x.createConicGradient(R.a-.9,cx,cy);g.addColorStop(0,`rgba(${R.rgb},0)`);g.addColorStop(.14,`rgba(${R.rgb},.2)`);g.addColorStop(.1401,`rgba(${R.rgb},0)`);g.addColorStop(1,`rgba(${R.rgb},0)`);x.fillStyle=g;x.beginPath();x.arc(cx,cy,rad,0,7);x.fill()}
+ x.strokeStyle=`rgba(${R.rgb},.55)`;x.lineWidth=1.5*R.d;x.beginPath();x.moveTo(cx,cy);x.lineTo(cx+Math.cos(R.a)*rad,cy+Math.sin(R.a)*rad);x.stroke();
+ if(Math.random()<.035+R.speed*2){const ang=R.a-.05,dist=rad*(.15+Math.random()*.8);R.blips.push({x:cx+Math.cos(ang)*dist,y:cy+Math.sin(ang)*dist,l:1,red:Math.random()<.18})}
+ R.blips=R.blips.filter(b=>(b.l-=.008)>0);for(const b of R.blips){x.fillStyle=b.red?`rgba(255,93,93,${b.l})`:`rgba(${R.rgb},${b.l})`;x.beginPath();x.arc(b.x,b.y,3.2*R.d,0,7);x.fill();x.strokeStyle=b.red?`rgba(255,93,93,${b.l*.4})`:`rgba(${R.rgb},${b.l*.4})`;x.beginPath();x.arc(b.x,b.y,(3.2+(1-b.l)*16)*R.d,0,7);x.stroke()}
+ R.a+=R.speed;if(!document.hidden&&!RM)requestAnimationFrame(rdraw)}
+rsize();addEventListener('resize',rsize);rdraw();document.addEventListener('visibilitychange',()=>{if(!document.hidden&&!RM)requestAnimationFrame(rdraw)});
+
+/* ---------- language ---------- */
+function setLang(l){lang=l;$('#en').className=l==='en'?'on':'';$('#pcm').className=l==='pcm'?'on':'';
+ const b=$('#'+l),p=$('#pill');p.style.width=b.offsetWidth+'px';p.style.transform=`translateX(${b.offsetLeft-4}px)`;
+ $$('[data-t]').forEach(e=>{const v=U[l][e.dataset.t];if(v!=null)e.textContent=v});$('#gol').textContent=L[l].go;document.documentElement.lang=l==='pcm'?'pcm':'en';detect();
+ if(last)render(last,true)}
+$('#en').onclick=()=>setLang('en');$('#pcm').onclick=()=>setLang('pcm');
+
+/* ---------- input ---------- */
+const q=$('#q');
+function detect(){const v=q.value.trim(),d=$('#det');$('#clr').hidden=!v;let k=null;
+ if(!v){d.className='det';return}
+ if(/^0x[a-fA-F0-9]{40}$/.test(v))k='evm';else if(/^T[1-9A-HJ-NP-Za-km-z]{33}$/.test(v))k='tron';else if(/^(EQ|UQ)[A-Za-z0-9_-]{46}$/.test(v)||/^-?\d:[a-fA-F0-9]{64}$/.test(v))k='ton';else if(/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(v))k='sol';else if(/^https?:\/\//i.test(v)&&!/\s/.test(v))k='link';else if(v.length>25&&/\s/.test(v))k='msg';
+ d.textContent=k?U[lang].d[k]:'';d.className='det'+(k?' show '+(k==='msg'?'msg':'good'):'')}
+q.addEventListener('input',detect);
+q.addEventListener('keydown',e=>{if(e.key==='Enter'&&(e.ctrlKey||e.metaKey)){e.preventDefault();$('#f').requestSubmit()}});
+$('#paste').onclick=async()=>{try{const v=await navigator.clipboard.readText();if(v){q.value=v.trim();detect();q.focus()}}catch(e){toast(t('pasteno'));q.focus()}};
+$('#clr').onclick=()=>{q.value='';detect();q.focus()};
+
+/* networks */
+const sel=$('#chain');
+function setChain(c){sel.value=c;$$('#nets .chip').forEach(b=>b.classList.toggle('on',b.dataset.c===c));const quick=$$('#nets .chip').some(b=>b.dataset.c===c);sel.classList.toggle('on',!quick);if(quick)sel.value=''}
+$$('#nets .chip').forEach(b=>b.onclick=()=>setChain(b.dataset.c));
+sel.addEventListener('change',()=>setChain(sel.value));
+function chainVal(){const on=$('#nets .chip.on');return on?on.dataset.c:(sel.value||'auto')}
+
+/* amount slider (log scale ₦1k to ₦5M) */
+const sl=$('#sl'),fmt=n=>'₦'+Math.round(n).toLocaleString('en-NG');
+const s2v=s=>{let v=1000*Math.pow(5000,s/1000),st=v<10000?500:v<100000?1000:v<1000000?10000:50000;return Math.max(1000,Math.round(v/st)*st)};
+const v2s=v=>Math.round(1000*Math.log(v/1000)/Math.log(5000));
+function setAmt(v,fromSlider){$('#amt').value=v;$('#amtv').textContent=fmt(v);if(!fromSlider)sl.value=v2s(v);sl.style.setProperty('--p',(sl.value/10)+'%')}
+sl.oninput=()=>setAmt(s2v(+sl.value),true);
+$$('#ticks button').forEach(b=>b.onclick=()=>setAmt(+b.dataset.v));
+setAmt(50000);
+
+/* spotlight */
+$('#f').addEventListener('pointermove',e=>{const r=e.currentTarget.getBoundingClientRect();e.currentTarget.style.setProperty('--mx',(e.clientX-r.left)+'px');e.currentTarget.style.setProperty('--my',(e.clientY-r.top)+'px')});
+
+$$('.ex button').forEach(a=>a.onclick=()=>{q.value=a.dataset.q;detect();setChain('auto');$('#f').requestSubmit()});
+
+/* ---------- helpers ---------- */
+const compact=n=>n>=1e9?(n/1e9).toFixed(1)+'B':n>=1e6?(n/1e6).toFixed(1)+'M':n>=1e3?(n/1e3).toFixed(n>=1e4?0:1)+'K':String(Math.round(n));
+function countUp(el,to,fn,ms=1200){if(RM){el.textContent=fn(to);return}const t0=performance.now();const s=n=>{const p=Math.min(1,(n-t0)/ms),e=1-Math.pow(1-p,3);el.textContent=fn(to*e);if(p<1)requestAnimationFrame(s)};requestAnimationFrame(s)}
+const short=a=>a&&a.length>16?a.slice(0,6)+'…'+a.slice(-4):a;
+const I={wa:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 00-8.6 15.1L2 22l5-1.3A10 10 0 1012 2zm5.3 14.2c-.2.6-1.3 1.2-1.8 1.2-.5.1-1 .2-3.3-.7-2.8-1.1-4.6-4-4.7-4.2-.1-.2-1.1-1.5-1.1-2.9s.7-2.1 1-2.3c.2-.3.6-.4.8-.4h.6c.2 0 .4 0 .6.5l.8 2c.1.2.1.3 0 .5l-.4.6-.4.4c-.1.2-.3.3-.1.6.2.3.8 1.3 1.7 2.1 1.2 1 2.1 1.4 2.4 1.5.3.1.5.1.6-.1l.9-1c.2-.3.4-.2.6-.1l1.9.9c.3.1.5.2.5.3.1.2.1.7-.1 1.1z"/></svg>',
+ cp:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 012-2h10"/></svg>',
+ tg:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M21.9 4.3l-3.1 14.8c-.2 1-.9 1.3-1.7.8l-4.8-3.5-2.3 2.2c-.3.3-.5.5-1 .5l.3-4.9 8.9-8c.4-.3-.1-.5-.6-.2L6.6 13 1.9 11.5c-1-.3-1-1 .2-1.5l18.4-7.1c.9-.3 1.6.2 1.4 1.4z"/></svg>'};
+
+/* ---------- render ---------- */
+let last=null;
+function render(j,quiet){last=j;const lb=L[lang],vc=VC[j.verdict]||VC.UNKNOWN;R.rgb=vc[1];
+ const red=j.findings.filter(f=>f.points),good=j.findings.filter(f=>!f.points);
+ const fi=[...red,...good].filter(f=>!(f.points&&(j.summary||'').includes(f.plain))).map((f,i)=>`<li class="${f.points?'bad':'ok'}" style="animation-delay:${quiet?0:.35+i*.07}s"><span class="ic">${f.points?'!':'✓'}</span><span>${esc(f.plain)}</span>${f.points?`<span class="pts">+${f.points}</span>`:''}</li>`).join('');
+ const tok=[j.name,j.symbol&&('$'+j.symbol)].filter(Boolean).join(' ');const share=j.share_url?j.share_text:j.share_text.replace(/https?:\S+$/,location.href);
+ const flags=j.message_flags&&j.message_flags.length?`<div class="card warn"><h4>⚠️ ${T2[lang].flags}</h4><ul>${j.message_flags.map(f=>`<li>${esc(f.plain)}</li>`).join('')}</ul>${j.removed&&j.removed.length?`<div class="mem">🛡️ ${T2[lang].removed} ${esc(j.removed.join(', ').replace('_',' '))}</div>`:''}</div>`:'';
+ const m=j.money;let money='';
+ if(m){const put=m.amount_ngn||+$('#amt').value,back=m.get_back_ngn,ratio=back!=null&&put?Math.max(0,Math.min(1,back/put)):0;
+  money=`<div class="money"><div class="row"><div><div class="k">${t('put')}</div><div class="n">${fmt(put)}</div></div><div style="text-align:right"><div class="k">${t('back')}</div><div class="n" id="mback" style="color:${ratio>.9?'var(--g)':ratio>.5?'var(--y)':'var(--r)'}">${back!=null?fmt(0):'—'}</div></div></div><div class="mb ${ratio<.5?'lose':''}"><i id="mbar" data-w="${(ratio*100).toFixed(1)}"></i></div><p>${esc(m.note)}${back==null||back===0?' '+esc(t('lose'))+'.':''}</p></div>`;
+  j._back=back}
+ const mk=j.market||{},tl=[];
+ if(mk.liquidity_usd!=null)tl.push([t('liq'),'$'+compact(mk.liquidity_usd),mk.liquidity_usd<10000?'r':mk.liquidity_usd<100000?'y':'g']);
+ if(mk.holders!=null)tl.push([t('hold'),compact(mk.holders),'']);
+ if(mk.creator_pct!=null)tl.push([t('cr'),(+mk.creator_pct).toFixed(mk.creator_pct<10?1:0)+'%',mk.creator_pct>20?'r':mk.creator_pct>5?'y':'g']);
+ if(mk.sell_test_failed!=null)tl.push([t('ts'),mk.sell_test_failed?`${mk.sell_test_failed} ${t('fail')}`:t('pass'),mk.sell_test_failed?'r':'g']);
+ const tiles=tl.length?`<div class="tiles">${tl.map(x=>`<div class="tile"><div class="k">${esc(x[0])}</div><div class="n ${x[2]}">${esc(x[1])}</div></div>`).join('')}</div>`:'';
+ const tgb=BOT&&j.share_url&&j.trace_id&&j.verdict!=='UNKNOWN'?`<a class="tg" target="_blank" rel="noopener" href="https://t.me/${BOT}?start=w${j.trace_id}">${I.tg}${lb.tg}</a>`:'';
+ const C=2*Math.PI*50;
+ $('#out').innerHTML=`${flags}<div class="card res v-${j.verdict}" style="--vc:${vc[0]};--vc-a:rgba(${vc[1]},.18)">
+ <div class="top"><div class="gauge"><svg viewBox="0 0 120 120"><circle class="trk" cx="60" cy="60" r="50"/><circle class="val" id="gv" cx="60" cy="60" r="50" stroke-dasharray="${C}" stroke-dashoffset="${C}"/></svg><div class="num"><div><b id="gn">0</b><small>/ 100</small></div></div></div>
+ <div style="min-width:0"><div class="vk">${t('risk')}</div><div class="vl">${lb.labels[j.verdict]||j.verdict}</div>${tok?`<div class="tk">${esc(tok)}</div>`:''}
+ <div class="pills"><span class="pl">⛓️ ${esc(j.chain_name||j.chain)}</span>${j.address?`<span class="pl addr" id="addr" title="${esc(j.address)}">${esc(short(j.address))} ${I.cp.replace('<svg','<svg width="12" height="12"')}</span>`:''}</div></div></div>
+ ${j.memory?`<div class="mem">🕘 ${esc(T2[lang].mem(j.memory))}</div>`:''}
+ <p class="sum">${esc(j.summary)}</p>${money}${tiles}
+ ${fi?`<div class="fh">${t('flags')}</div><ul class="fl">${fi}</ul>`:''}
+ <div class="src">${(j.sources||[]).map(s=>`<span class="pl">✓ ${esc(s)}</span>`).join('')}</div>
+ <div class="meta">${lb.src}: ${esc((j.sources||[]).length)}${j.coverage&&j.coverage.missing.length?` · ${t('miss')}: ${esc(j.coverage.missing.join(', '))}`:''}${j.checked_at?` · ${t('at')} ${new Date(j.checked_at).toLocaleTimeString([],{hour:'numeric',minute:'2-digit'})}`:''}</div>
+ <div class="acts"><a class="wa" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(share)}">${I.wa}${lb.wa}</a><button class="cp" type="button" id="cp">${I.cp}<span>${lb.cp}</span></button>${tgb}<button class="again" type="button" id="again">↺ ${t('again')}</button></div>
+ <div class="fb" id="fb">${T2[lang].fbq} <button type="button" data-v="up" aria-label="yes">👍</button><button type="button" data-v="down" aria-label="no">👎</button></div></div>`;
+ const go=()=>{$('#gv').style.strokeDashoffset=C*(1-Math.max(2,j.score)/100);countUp($('#gn'),j.score,v=>Math.round(v));
+  const mb=$('#mbar');if(mb)mb.style.width=mb.dataset.w+'%';const mbk=$('#mback');if(mbk&&j._back!=null)countUp(mbk,j._back,fmt,1300)};
+ quiet?(($('#gv').style.transition='none'),go()):requestAnimationFrame(()=>requestAnimationFrame(go));
+ $('#cp').onclick=()=>{navigator.clipboard.writeText(share);$('#cp span').textContent=lb.done;toast(t('copied'))};
+ const ad=$('#addr');if(ad)ad.onclick=()=>{navigator.clipboard.writeText(j.address);toast(t('addr'))};
+ $('#again').onclick=()=>{q.value='';detect();scrollTo({top:0,behavior:'smooth'});setTimeout(()=>q.focus(),400)};
+ $$('#fb button').forEach(b=>b.onclick=()=>{fetch('/api/feedback',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({trace_id:j.trace_id,vote:b.dataset.v})});$('#fb').textContent=T2[lang].thx});
+ if(!quiet)setTimeout(()=>$('#out').scrollIntoView({behavior:RM?'auto':'smooth',block:'start'}),120)}
+
+function fail(msg){last=null;R.rgb='255,93,93';$('#out').innerHTML=`<div class="card"><div class="err"><span class="ic">⚠️</span><div>${esc(msg)}</div></div></div>`}
+
+/* ---------- run ---------- */
+function run(){const b=$('#go');b.disabled=true;$('#gol').textContent=L[lang].busy;document.body.classList.add('busy');R.speed=.03;R.rgb='62,224,143';last=null;
+ $('#out').innerHTML=`<div class="card"><div class="scan"><div class="scope"><div class="beam"></div><span class="b" style="top:22%;left:62%"></span><span class="b" style="top:60%;left:28%;animation-delay:.6s"></span></div><div><h3>${t('scanh')}</h3><p>${t('scanp')}</p></div></div><div class="bar"><i id="pb"></i></div><ul class="steps" id="steps"></ul></div>`;
+ $('#out').scrollIntoView({behavior:RM?'auto':'smooth',block:'nearest'});
+ const p=new URLSearchParams({q:q.value.trim(),chain:chainVal(),lang,amount:$('#amt').value||50000});
+ const seen={},done=()=>{b.disabled=false;$('#gol').textContent=L[lang].go;document.body.classList.remove('busy');R.speed=.006};let finished=false;
+ const prog=()=>{const all=Object.values(seen),d=all.filter(li=>li.className!=='started').length;const pb=$('#pb');if(pb)pb.style.width=Math.max(6,Math.min(96,d/Math.max(all.length+1,5)*100))+'%'};
+ const es=new EventSource('/api/stream?'+p);
+ es.onmessage=e=>{const ev=JSON.parse(e.data);
+  if(ev.type==='step'){let li=seen[ev.tool];if(!li){li=document.createElement('li');seen[ev.tool]=li;$('#steps').appendChild(li)}
+   const st=ev.status==='done'?'done':ev.status==='started'?'started':'bad';li.className=st;
+   li.innerHTML=`<span class="ic">${st==='done'?'✓':st==='bad'?'!':''}</span><span>${esc(ev.label)}${st==='bad'?` <small>(${esc(ev.status)})</small>`:''}</span>${ev.ms!=null&&st==='done'?`<span class="ms">${ev.ms<1000?ev.ms+' ms':(ev.ms/1000).toFixed(1)+' s'}</span>`:''}`;prog()}
+  else if(ev.type==='report'){finished=true;es.close();const pb=$('#pb');if(pb)pb.style.width='100%';const j=ev.report;history.replaceState(null,'','?'+new URLSearchParams({q:j.address,chain:j.chain,lang}));setTimeout(()=>{render(j);done()},RM?0:350)}
+  else if(ev.type==='error'){finished=true;es.close();fail(ev.detail);done()}};
+ es.onerror=()=>{es.close();if(finished)return;finished=true;
+  fetch('/api/check?'+p).then(r=>r.json().then(j=>{if(!r.ok)throw j;render(j)})).catch(j=>fail((j&&j.detail)||t('neterr'))).finally(done)}}
+$('#f').onsubmit=e=>{e.preventDefault();if(!q.value.trim()){q.focus();return}run()};
+
+/* ---------- extras ---------- */
+fetch('/api/health').then(r=>r.json()).then(h=>{BOT=h.telegram_bot||null;if(BOT){const a=$('#tgl');a.href='https://t.me/'+BOT;a.hidden=false}}).catch(()=>{});
+let statsDone=false;
+function loadStats(){if(statsDone)return;statsDone=true;fetch('/api/stats').then(r=>r.json()).then(s=>{if(!s||!s.checks)return;$('#stats').hidden=false;countUp($('#st1'),s.checks,v=>compact(v));countUp($('#st2'),64,v=>Math.round(v));countUp($('#st3'),(s.p50_ms||0)/1000,v=>v.toFixed(1)+'s')}).catch(()=>{})}
+const io='IntersectionObserver' in window?new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');if(e.target.querySelector('#stats'))loadStats();io.unobserve(e.target)}}),{threshold:.15}):null;
+$$('.rv').forEach(e=>io?io.observe(e):(e.classList.add('in'),loadStats()));
+
+const u=new URLSearchParams(location.search);setChain('auto');
+if(u.get('lang')==='pcm')setLang('pcm');else setLang('en');
+if(u.get('q')){q.value=u.get('q');detect();if(u.get('chain'))setChain(u.get('chain'));run()}
 </script></body></html>
