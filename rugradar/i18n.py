@@ -53,6 +53,8 @@ T = {
                   "Hidden owner dey wey still fit control the contract."),
  "RECLAIM_OWNERSHIP": ("Ownership looks given up but can be taken back.", "E be like say dem drop ownership, but dem fit collect am back."),
  "MINTABLE": ("The owner can print new tokens, which can crash the price.", "The owner fit print more token anytime, and price fit crash."),
+ "OWNER_RENOUNCED": ("The code has pause and blacklist switches, but the owner gave up control, so nobody can use them.",
+                     "The code get pause and blacklist switch, but the owner don drop control, so nobody fit use am."),
  "PAUSABLE": ("Trading can be paused by the owner at any time.", "The owner fit stop trading anytime."),
  "BLACKLIST": ("The owner can block specific wallets from trading.", "The owner fit block your wallet make you no fit trade."),
  "TAX_CHANGEABLE": ("The owner can raise the tax later, even after you buy.", "The owner fit increase tax later, even after you don buy."),

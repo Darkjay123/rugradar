@@ -158,10 +158,23 @@ def assess(f: TokenFacts, address: str = "", lang: str = "en") -> tuple[Verdict,
             add("RECLAIM_OWNERSHIP", Severity.high, 35)
         if _flag(s, "is_mintable") and s.get("owner_address") not in (None, "", *DEAD):
             add("MINTABLE", Severity.medium, 15)
+        # Pause and blacklist switches belong to the owner. When the owner is the zero/dead address, there's no
+        # hidden owner, ownership can't be reclaimed and the code can't be swapped, nobody can flip them (PEPE).
+        renounced = (str(s.get("owner_address") or "").lower() in DEAD and not _flag(s, "hidden_owner")
+                     and not _flag(s, "can_take_back_ownership") and not _flag(s, "is_proxy"))
+        dead_powers = False
         if _flag(s, "transfer_pausable"):
-            add("PAUSABLE", Severity.medium, 15)
+            if renounced:
+                dead_powers = True
+            else:
+                add("PAUSABLE", Severity.medium, 15)
         if _flag(s, "is_blacklisted"):
-            add("BLACKLIST", Severity.medium, 15)
+            if renounced:
+                dead_powers = True
+            else:
+                add("BLACKLIST", Severity.medium, 15)
+        if dead_powers:
+            add("OWNER_RENOUNCED", Severity.info, 0)
         if _flag(s, "slippage_modifiable"):
             add("TAX_CHANGEABLE", Severity.high, 25)
         if _flag(s, "is_proxy"):

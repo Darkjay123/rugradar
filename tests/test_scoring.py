@@ -326,3 +326,26 @@ def test_one_crashing_source_does_not_fail_the_check(monkeypatch):
     monkeypatch.setattr(tools, "creator_check", lambda *a, **k: None)
     rep = agent.check(CheckRequest(chain="base", address="0x" + "4" * 40), use_memory=False)
     assert rep.verdict.value in ("CAUTION", "HIGH_RISK", "UNKNOWN", "LOW_RISK")
+
+
+def _codes(sec):
+    f = TokenFacts(security={"is_open_source": "1", **sec}, has_security_data=True, has_market_data=True, liquidity_usd=5e6, pair_age_hours=24 * 900)
+    v, _, out, _ = assess(f, "0x" + "2" * 40)
+    return v, {x.code for x in out}
+
+
+def test_renounced_owner_neutralizes_pause_and_blacklist():
+    # PEPE: pause + blacklist in code, owner is the zero address, can't be reclaimed, not upgradeable
+    v, c = _codes({"transfer_pausable": "1", "is_blacklisted": "1", "owner_address": "0x" + "0" * 40,
+                   "hidden_owner": "0", "can_take_back_ownership": "0", "is_proxy": "0"})
+    assert v == Verdict.low and "OWNER_RENOUNCED" in c and not c & {"PAUSABLE", "BLACKLIST"}
+
+
+def test_live_owner_or_escape_hatch_keeps_pause_and_blacklist():
+    base = {"transfer_pausable": "1", "is_blacklisted": "1"}
+    for extra in ({"owner_address": "0xabc"}, {"owner_address": ""},
+                  {"owner_address": "0x" + "0" * 40, "is_proxy": "1"},
+                  {"owner_address": "0x" + "0" * 40, "can_take_back_ownership": "1"},
+                  {"owner_address": "0x" + "0" * 40, "hidden_owner": "1"}):
+        _, c = _codes({**base, **extra})
+        assert {"PAUSABLE", "BLACKLIST"} <= c and "OWNER_RENOUNCED" not in c, extra
